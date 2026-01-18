@@ -1,6 +1,6 @@
 # Mithai POS - Professional Sweet Shop Management System
 
-![Mithai POS Logo](public\assets\images\branding\sinyx-slogan.png)
+![Mithai POS Logo](public/assets/images/branding/sinyx-slogan.png)
 
 A robust, high-performance desktop Point of Sale (POS) system designed specifically for sweet shops. Built with **Laravel 10**, **React**, and **Electron**, it combines the power of modern web technologies with the reliability of a native desktop application.
 
