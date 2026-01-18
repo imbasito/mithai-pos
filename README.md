@@ -23,7 +23,7 @@ A robust, high-performance desktop Point of Sale (POS) system designed specifica
 
 ## 📦 Installation for Clients
 
-1. Download the latest `Mithai-POS-Setup.exe` from the [Releases](https://github.com/YOUR_USERNAME/mithai-pos/releases) page.
+1. Download the latest `Mithai-POS-Setup.exe` from the [Releases](https://github.com/imbasito/mithai-pos/releases) page.
 2. Run the installer and follow the on-screen instructions.
 3. The application will request **Administrator Privileges** to manage local services.
 4. Once installed, launch "Mithai POS" from your desktop.
@@ -31,13 +31,13 @@ A robust, high-performance desktop Point of Sale (POS) system designed specifica
 ## 💻 Developer Setup
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (Project includes bundled versions).
-- [PHP 8.2+](https://www.php.net/) (Project includes bundled versions).
+- [Node.js](https://nodejs.org/)
+- [PHP 8.2+](https://www.php.net/)
 
 ### Initial Configuration
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mithai-pos.git
+   git clone https://github.com/imbasito/mithai-pos.git
    cd mithai-pos
    ```
 2. Setup environment variables:
@@ -59,7 +59,7 @@ npm run start  # Launch Electron
 
 ## 📜 Credits & Licensing
 
-- **Original Application**: Developed by [Original Author Name/Link] - *This project is a refined and enhanced version of the original POS system.*
+- **Original Application**: Developed by [Original Author (Abdul Basit Khan)/bestboy717@gmai.com] - *This project is a refined and enhanced version of the original POS system.*
 - **Refinement & Enhancements**: Maintained by Abdul Basit Khan (SINYX).
 - **License**: UNLICENSED (All Rights Reserved).
 
