@@ -59,7 +59,7 @@ npm run start  # Launch Electron
 
 ## 📜 Credits & Licensing
 
-- **Original Application**: Developed by [Original Author [Abdul Basit Khan](bestboy717@gmail.com) - *This project is a refined and enhanced version of the original QPOS system.*
+- **Original Application**: Developed by [Abdul Basit Khan](bestboy717@gmail.com) - *This project is a refined and enhanced version of the original QPOS system.*
 - **Refinement & Enhancements**: Maintained by Abdul Basit Khan (SINYX).
 - **License**: UNLICENSED (All Rights Reserved).
 
