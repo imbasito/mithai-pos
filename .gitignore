@@ -1,0 +1,41 @@
+# Professional .gitignore for Mithai POS
+# Excludes local environments and heavy software engines
+
+# Laravel / PHP
+/.phpunit.cache
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+
+# Node / JS
+/node_modules
+/public/hot
+/public/storage
+/storage
+npm-debug.log
+yarn-error.log
+
+# Build / Electron
+/out/
+/dist/
+*.exe
+*.msi
+*.zip
+
+# Software Engines (Excluded for Option B)
+/php/
+/nodejs/
+/mysql/
+
+# IDE / System
+/.fleet
+/.idea
+/.vscode
+/~
+.DS_Store
+Thumbs.db

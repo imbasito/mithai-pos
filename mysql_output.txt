@@ -1,0 +1,12 @@
+mysqld: Can't open shared library 'D:\Projects\POS System\lib\plugin\component_reference_cache.dll' (errno: 126 The specified module could not be found.)
+mysqld: Cannot load component from specified URN: 'file://component_reference_cache'.
+2026-01-18T07:44:08.569059Z 0 [System] [MY-015015] [Server] MySQL Server - start.
+2026-01-18T07:44:08.790009Z 0 [System] [MY-010116] [Server] D:\Projects\POS System\mysql\bin\mysqld.exe (mysqld 9.3.0) starting as process 15772
+2026-01-18T07:44:08.828256Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-01-18T07:44:08.830931Z 1 [ERROR] [MY-012271] [InnoDB] The innodb_system data file 'ibdata1' must be writable
+2026-01-18T07:44:08.831000Z 1 [ERROR] [MY-012278] [InnoDB] The innodb_system data file 'ibdata1' must be writable
+2026-01-18T07:44:08.831054Z 1 [ERROR] [MY-010334] [Server] Failed to initialize DD Storage Engine
+2026-01-18T07:44:08.831766Z 0 [ERROR] [MY-010020] [Server] Data Dictionary initialization failed.
+2026-01-18T07:44:08.831831Z 0 [ERROR] [MY-010119] [Server] Aborting
+2026-01-18T07:44:08.833557Z 0 [System] [MY-010910] [Server] D:\Projects\POS System\mysql\bin\mysqld.exe: Shutdown complete (mysqld 9.3.0)  MySQL Community Server - GPL.
+2026-01-18T07:44:08.833607Z 0 [System] [MY-015016] [Server] MySQL Server - end.

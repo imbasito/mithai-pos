@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+        @yield('title', 'Dashboard') | {{ readConfig('site_name') }}
+    </title>
+
+    <!-- FAVICON ICON -->
+    <link rel="shortcut icon" href="{{ assetImage(readconfig('favicon_icon')) }}" type="image/svg+xml">
+
+    <!-- FAVICON ICON APPLE -->
+    <link href="{{ assetImage(readconfig('favicon_icon_apple')) }}" rel="apple-touch-icon">
+    <link href="{{ assetImage(readconfig('favicon_icon_apple')) }}" rel="apple-touch-icon" sizes="72x72">
+    <link href="{{ assetImage(readconfig('favicon_icon_apple')) }}" rel="apple-touch-icon" sizes="114x114">
+    <link href="{{ assetImage(readconfig('favicon_icon_apple')) }}" rel="apple-touch-icon" sizes="144x144">
+
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="{{ asset('plugins/fontawesome-free/css/all.min.css') }}">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Tempusdominus Bootstrap 4 -->
+    <link rel="stylesheet"
+        href="{{ asset('plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css') }}">
+    <!-- iCheck -->
+    <link rel="stylesheet" href="{{ asset('plugins/icheck-bootstrap/icheck-bootstrap.min.css') }}">
+    <!-- JQVMap -->
+    <link rel="stylesheet" href="{{ asset('plugins/jqvmap/jqvmap.min.css') }}">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="{{ asset('dist/css/adminlte.min.css') }}">
+    <!-- overlayScrollbars -->
+    <link rel="stylesheet" href="{{ asset('plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
+    <!-- Daterange picker -->
+    <link rel="stylesheet" href="{{ asset('plugins/daterangepicker/daterangepicker.css') }}">
+    <!-- summernote -->
+    <link rel="stylesheet" href="{{ asset('plugins/summernote/summernote-bs4.min.css') }}">
+    <!-- Select2 -->
+    <link rel="stylesheet" href="{{ asset('plugins/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <!-- dropzonejs -->
+    <link rel="stylesheet" href="{{ asset('plugins/dropzone/min/dropzone.min.css') }}">
+    {{-- datatable --}}
+    <link rel="stylesheet" href="{{ asset('assets/css/datatable/datatable.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/datatable/buttons.dataTables.min.css') }}">
+    {{-- custom style --}}
+    <link rel="stylesheet" href="{{ asset('css/custom-style.css') }}">
+
+    <style>
+        .image-upload-container {
+            border: 2px dashed #8b9ee9;
+            /* Dashed border color */
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            /* Light background color */
+            display: flex;
+            justify-content: center;
+            /* Center the content */
+            align-items: center;
+            /* Center the content vertically */
+            width: 100%;
+            /* Make the container full width of its parent */
+            height: 200px;
+            /* Fixed height */
+            cursor: pointer;
+            /* Indicate clickability */
+        }
+
+        .thumb-preview {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* Prevents overflow */
+        }
+
+        #thumbnailPreview {
+            max-width: 100%;
+            max-height: 100%;
+            /* Ensure it fits within the container */
+            object-fit: cover;
+            /* Maintain aspect ratio while covering the box */
+        }
+
+        .upload-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #8b9ee9;
+            /* Text color */
+            text-align: center;
+        }
+
+        .upload-text i {
+            font-size: 24px;
+            /* Icon size */
+            margin-bottom: 5px;
+            /* Space between icon and text */
+        }
+        
+        /* ========= SMOOTH PAGE TRANSITIONS ========== */
+        .content-wrapper {
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Card entrance animation */
+        .card {
+            animation: cardSlide 0.2s ease-out;
+        }
+        
+        @keyframes cardSlide {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Stagger card animations */
+        .card:nth-child(1) { animation-delay: 0s; }
+        .card:nth-child(2) { animation-delay: 0.03s; }
+        .card:nth-child(3) { animation-delay: 0.06s; }
+        .card:nth-child(4) { animation-delay: 0.09s; }
+        
+        /* Smooth table row hover */
+        .table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+        
+        /* Button press feedback */
+        .btn {
+            transition: transform 0.1s ease, box-shadow 0.15s ease;
+        }
+        
+        .btn:active {
+            transform: scale(0.97);
+        }
+    </style>
+    @stack('style')
+    @viteReactRefresh
+    @vite('resources/js/app.jsx')
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+
+    <x-simple-alert />
+
+    <div class="wrapper">
+
+        <!-- Professional Top Loading Bar -->
+        <div id="page-loading-bar" style="display: none;">
+            <div class="loading-bar-progress"></div>
+        </div>
+        <style>
+            #page-loading-bar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 3px;
+                z-index: 9999;
+                background: rgba(0,0,0,0.1);
+            }
+            .loading-bar-progress {
+                height: 100%;
+                width: 0%;
+                background: linear-gradient(90deg, var(--primary-color, #800000), #ff4444);
+                animation: loadingProgress 1.5s ease-in-out infinite;
+                box-shadow: 0 0 10px rgba(128, 0, 0, 0.5);
+            }
+            @keyframes loadingProgress {
+                0% { width: 0%; margin-left: 0%; }
+                50% { width: 30%; margin-left: 35%; }
+                100% { width: 0%; margin-left: 100%; }
+            }
+        </style>
+        <script>
+            // Show loading bar on page navigation
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                if (link && link.href && !link.href.includes('#') && !link.target && !e.ctrlKey && !e.metaKey) {
+                    document.getElementById('page-loading-bar').style.display = 'block';
+                }
+            });
+            // Hide on page load
+            window.addEventListener('load', function() {
+                document.getElementById('page-loading-bar').style.display = 'none';
+            });
+        </script>
+
+        <!-- Navbar -->
+        @include('backend.layouts.navbar')
+        <!-- /.navbar -->
+
+        <!-- Main Sidebar Container -->
+        <aside class="main-sidebar elevation-4 sidebar-light-lightblue">
+            <!-- Brand Logo -->
+            <a href="{{ route('backend.admin.dashboard') }}" class="brand-link">
+                <img src="{{ assetImage(readconfig('site_logo')) }}" alt="Logo"
+                    class="brand-image img-circle elevation-3" 
+                    style="opacity: .9; mix-blend-mode: multiply; border-radius: 50% !important; object-fit: cover;">
+                <span class="brand-text font-weight-light">{{ readConfig('site_name') }}</span>
+            </a>
+
+            <!-- Sidebar -->
+            @include('backend.layouts.sidebar')
+            <!-- /.sidebar -->
+
+        </aside>
+
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content-wrapper">
+            <!-- Content Header (Page header) -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">
+                                @yield('title')
+                            </h1>
+                        </div><!-- /.col -->
+                    </div><!-- /.row -->
+                </div><!-- /.container-fluid -->
+            </div>
+            <!-- /.content-header -->
+
+
+            <!-- Main content -->
+            <section class="content">
+                <!-- container-fluid -->
+                <div class="container-fluid">
+
+                    <!-- content -->
+                    @yield('content')
+                    <!-- /.content -->
+
+                </div>
+                <!-- /.container-fluid -->
+            </section>
+            <!-- /.Main content -->
+        </div>
+        <!-- /.content-wrapper -->
+
+        @include('backend.layouts.footer')
+
+    </div>
+    <!-- ./wrapper -->
+
+    <!-- jQuery -->
+    <script src="{{ asset('plugins/jquery/jquery.min.js') }}"></script>
+    <!-- jQuery UI 1.11.4 -->
+    <script src="{{ asset('plugins/jquery-ui/jquery-ui.min.js') }}"></script>
+    <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+    <script>
+        $.widget.bridge('uibutton', $.ui.button)
+    </script>
+    <!-- Bootstrap 4 -->
+    <script src="{{ asset('plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- ChartJS -->
+    <script src="{{ asset('plugins/chart.js/Chart.min.js') }}"></script>
+    <!-- Sparkline -->
+    <script src="{{ asset('plugins/sparklines/sparkline.js') }}"></script>
+    <!-- JQVMap -->
+    <script src="{{ asset('plugins/jqvmap/jquery.vmap.min.js') }}"></script>
+    <script src="{{ asset('plugins/jqvmap/maps/jquery.vmap.usa.js') }}"></script>
+    <!-- jQuery Knob Chart -->
+    <script src="{{ asset('plugins/jquery-knob/jquery.knob.min.js') }}"></script>
+    <!-- daterangepicker -->
+    <script src="{{ asset('plugins/moment/moment.min.js') }}"></script>
+    <script src="{{ asset('plugins/daterangepicker/daterangepicker.js') }}"></script>
+    <!-- Tempusdominus Bootstrap 4 -->
+    <script src="{{ asset('plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js') }}"></script>
+    <!-- Summernote -->
+    <script src="{{ asset('plugins/summernote/summernote-bs4.min.js') }}"></script>
+    <!-- overlayScrollbars -->
+    <script src="{{ asset('plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
+    <!-- AdminLTE App -->
+    <script src="{{ asset('dist/js/adminlte.js') }}"></script>
+    <!-- Select2 -->
+    <script src="{{ asset('plugins/select2/js/select2.full.min.js') }}"></script>
+    {{-- custom script --}}
+    <script src="{{ asset('js/custom-script.js') }}"></script>
+    <!-- dropzonejs -->
+    <script src="{{ asset('plugins/dropzone/min/dropzone.min.js') }}"></script>
+
+    {{-- datatable --}}
+    <script src="{{ asset('assets/js/datatable/datatable.js') }}"></script>
+    <script src="{{ asset('assets/js/datatable/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('assets/js/datatable/dataTables.buttons.min.js') }}"></script>
+
+    <!-- Fullscreen Persistence - Remember state across page navigation -->
+    <script>
+        (function() {
+            const FULLSCREEN_KEY = 'pos_fullscreen_enabled';
+            
+            // Check if we should be in fullscreen (saved from previous page)
+            function shouldBeFullscreen() {
+                return localStorage.getItem(FULLSCREEN_KEY) === 'true';
+            }
+            
+            // Enter fullscreen
+            function enterFullscreen() {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            }
+            
+            // Save fullscreen state when changed
+            document.addEventListener('fullscreenchange', function() {
+                const isFullscreen = !!document.fullscreenElement;
+                localStorage.setItem(FULLSCREEN_KEY, isFullscreen);
+                
+                // Update icon
+                const icon = document.querySelector('[data-widget="fullscreen"] i');
+                if (icon) {
+                    icon.className = isFullscreen ? 'fas fa-compress-arrows-alt' : 'fas fa-expand-arrows-alt';
+                }
+            });
+            
+            // Restore fullscreen on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                if (shouldBeFullscreen()) {
+                    // Small delay to ensure page is ready
+                    setTimeout(enterFullscreen, 100);
+                }
+            });
+            
+            // F11 shortcut to toggle fullscreen
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F11') {
+                    e.preventDefault();
+                    const fullscreenBtn = document.querySelector('[data-widget="fullscreen"]');
+                    if (fullscreenBtn) fullscreenBtn.click();
+                }
+            });
+        })();
+    </script>
+
+    @stack('script')
+</body>
+
+</html>

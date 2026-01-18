@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mithai POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            -webkit-app-region: drag;
+        }
+
+        .container {
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Premium Maroon Logo Container */
+        .logo {
+            width: 220px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .logo img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .brand {
+            font-size: 28px;
+            font-weight: 500;
+            color: #1d1d1f;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .tagline {
+            font-size: 15px;
+            font-weight: 400;
+            color: #86868b;
+            letter-spacing: 0.2px;
+        }
+
+        /* Apple-style loading spinner */
+        .loader {
+            margin-top: 50px;
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .loader span {
+            width: 8px;
+            height: 8px;
+            background: #86868b;
+            border-radius: 50%;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .loader span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .loader span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loader span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            80%,
+            100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+
+            40% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 30px;
+            text-align: center;
+            animation: fadeIn 1s ease-out 0.3s both;
+            width: 100%;
+        }
+
+        .developer {
+            font-size: 11px;
+            font-weight: 500;
+            color: #86868b;
+            letter-spacing: 0.3px;
+        }
+
+        .developer strong {
+            color: #1d1d1f;
+            font-weight: 600;
+        }
+
+        .contact {
+            font-size: 10px;
+            color: #aeaeb2;
+            margin-top: 4px;
+            letter-spacing: 0.2px;
+        }
+
+        .version {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #aeaeb2;
+            background: rgba(0, 0, 0, 0.04);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <span class="version">v1.0</span>
+
+    <div class="container">
+        <div class="logo">
+            <img src="public/assets/images/branding/sinyx-slogan.png" alt="SINYX Logo">
+        </div>
+        <h1 class="brand" style="display: none;">Mithai POS</h1>
+        <p class="tagline">Point of Sale System</p>
+
+        <div class="loader" style="margin-top: 30px;">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <p id="status-text" style="margin-top: 30px; font-size: 13px; color: #86868b; letter-spacing: 0.2px;">Starting...</p>
+    </div>
+
+    <div class="footer">
+        <p class="developer">Developed by <strong>SINYX</strong></p>
+    </div>
+</body>
+
+</html>

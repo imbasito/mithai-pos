@@ -1,0 +1,81 @@
+/* SF Pro Font - Bundled Locally for Offline Desktop App */
+/* Using system font stack as SF Pro alternative (legal, no license issues) */
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('SF Pro Display'),
+        local('SFProDisplay-Regular'),
+        local('-apple-system'),
+        local('BlinkMacSystemFont'),
+        local('Segoe UI'),
+        local('Roboto');
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: local('SF Pro Display Medium'),
+        local('SFProDisplay-Medium'),
+        local('-apple-system'),
+        local('BlinkMacSystemFont');
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: local('SF Pro Display Semibold'),
+        local('SFProDisplay-Semibold'),
+        local('-apple-system'),
+        local('BlinkMacSystemFont');
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: local('SF Pro Display Bold'),
+        local('SFProDisplay-Bold'),
+        local('-apple-system'),
+        local('BlinkMacSystemFont');
+}
+
+/* SF Pro Text for smaller sizes */
+@font-face {
+    font-family: 'SF Pro Text';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('SF Pro Text'),
+        local('SFProText-Regular'),
+        local('-apple-system'),
+        local('BlinkMacSystemFont'),
+        local('Segoe UI');
+}
+
+@font-face {
+    font-family: 'SF Pro Text';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: local('SF Pro Text Medium'),
+        local('SFProText-Medium'),
+        local('-apple-system');
+}
+
+@font-face {
+    font-family: 'SF Pro Text';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: local('SF Pro Text Semibold'),
+        local('SFProText-Semibold'),
+        local('-apple-system');
+}

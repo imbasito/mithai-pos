@@ -1,0 +1,723 @@
+/* =====================================================
+   POS - Professional Mithai Theme
+   "Premium Maroon" Edition
+   Color Palette:
+   - Primary (Maroon): #800000
+   - Primary Dark: #5C0000
+   - Secondary (Golden): #E6B863
+   - Sidebar (Dark Chocolate): #4E342E
+   - Background (Cream): #FFFDF9
+   - Text (Coffee): #3E2723
+===================================================== */
+
+:root {
+    --primary-color: #800000;
+    --primary-dark: #5C0000;
+    --primary-light: #A52A2A;
+    --secondary-color: #E6B863;
+    --sidebar-color: #4E342E;
+    --sidebar-dark: #2D1B18;
+    --background-color: #FFFDF9;
+    --text-color: #3E2723;
+    --white: #FFFFFF;
+}
+
+/* ========= GLOBAL ========== */
+body {
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    color: var(--text-color);
+    background-color: var(--background-color) !important;
+}
+
+.content-wrapper {
+    background-color: var(--background-color) !important;
+    background-image: url('../assets/images/theme/mithai_pattern_subtle.png');
+    background-repeat: repeat;
+    background-size: 400px;
+    background-blend-mode: multiply;
+}
+
+a {
+    color: var(--primary-color) !important;
+}
+
+a:hover {
+    color: var(--primary-dark) !important;
+}
+
+/* ========= BUTTONS ========== */
+/* Primary -> Maroon */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary:not(:disabled):not(.disabled):active,
+.show>.btn-primary.dropdown-toggle,
+.bg-primary,
+.bg-gradient-primary,
+.bg-gradient-primary:hover,
+.badge-primary {
+    background: var(--primary-color) !important;
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--white) !important;
+    box-shadow: none !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.bg-gradient-primary:hover {
+    background: var(--primary-dark) !important;
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+}
+
+/* Info/LightBlue -> Gold */
+.btn-info,
+.btn-info:hover,
+.btn-info:focus,
+.btn-lightblue,
+.btn-lightblue:hover,
+.bg-info,
+.bg-lightblue,
+.badge-info {
+    background: var(--secondary-color) !important;
+    background-color: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
+    color: var(--text-color) !important;
+    box-shadow: none !important;
+}
+
+.btn-info:hover,
+.btn-lightblue:hover {
+    background: #D4A040 !important;
+    background-color: #D4A040 !important;
+}
+
+/* Secondary -> Chocolate */
+.btn-secondary,
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-default,
+.btn-default:hover {
+    background: #6D4C41 !important;
+    background-color: #6D4C41 !important;
+    border-color: #5D4037 !important;
+    color: var(--white) !important;
+    box-shadow: none !important;
+}
+
+.btn-secondary:hover,
+.btn-default:hover {
+    background: #5D4037 !important;
+    background-color: #5D4037 !important;
+}
+
+/* Success -> Golden */
+.btn-success,
+.btn-success:hover,
+.btn-success:focus,
+.bg-success {
+    background: var(--secondary-color) !important;
+    background-color: var(--secondary-color) !important;
+    border-color: #C9A84A !important;
+    color: var(--text-color) !important;
+    box-shadow: none !important;
+}
+
+/* Warning -> Saffron */
+.btn-warning,
+.btn-warning:hover,
+.bg-warning {
+    background: #FF9800 !important;
+    background-color: #FF9800 !important;
+    border-color: #E68900 !important;
+    color: var(--text-color) !important;
+    box-shadow: none !important;
+}
+
+/* Danger -> Deep Red */
+.btn-danger,
+.btn-danger:hover,
+.btn-danger:focus,
+.bg-gradient-danger,
+.bg-gradient-danger:hover {
+    background: #B71C1C !important;
+    background-color: #B71C1C !important;
+    border-color: #8E0000 !important;
+    color: var(--white) !important;
+    box-shadow: none !important;
+}
+
+.btn-danger:hover,
+.bg-gradient-danger:hover {
+    background: #8E0000 !important;
+    background-color: #8E0000 !important;
+}
+
+/* Dropdown Items */
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item:active {
+    background-color: var(--secondary-color) !important;
+    color: var(--sidebar-color) !important;
+}
+
+/* Form Focus */
+.form-control:focus,
+.custom-select:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25) !important;
+}
+
+/* Select2 */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--secondary-color) !important;
+    color: var(--text-color) !important;
+}
+
+/* Pagination */
+.page-item.active .page-link {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.page-link {
+    color: var(--primary-color) !important;
+}
+
+.page-link:hover {
+    color: var(--primary-dark) !important;
+    background-color: #FFF3E0 !important;
+}
+
+/* ========= SIDEBAR WITH PATTERN ========== */
+.main-sidebar,
+.sidebar-dark-primary,
+.sidebar-light-lightblue,
+.sidebar {
+    background-color: var(--sidebar-color) !important;
+    background-image: url('../assets/images/theme/mithai_pattern_subtle.png') !important;
+    background-repeat: repeat !important;
+    background-size: 300px !important;
+    background-blend-mode: soft-light !important;
+}
+
+.brand-link {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.brand-text {
+    color: var(--secondary-color) !important;
+    font-weight: 700 !important;
+}
+
+/* Sidebar Nav Links */
+.nav-sidebar .nav-link,
+.nav-sidebar>.nav-item>.nav-link,
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background-color: transparent !important;
+}
+
+.nav-sidebar .nav-link:hover,
+.nav-sidebar>.nav-item>.nav-link:hover,
+.sidebar .nav-link:hover,
+.nav-sidebar .nav-item.menu-open>.nav-link,
+.nav-sidebar .nav-link:focus {
+    background-color: rgba(230, 184, 99, 0.2) !important;
+    color: var(--secondary-color) !important;
+}
+
+.nav-sidebar .nav-link.active,
+.nav-sidebar>.nav-item>.nav-link.active,
+.sidebar-dark-primary .nav-sidebar>.nav-item>.nav-link.active,
+[class*="sidebar-light-"] .nav-sidebar>.nav-item>.nav-link.active {
+    background-color: var(--primary-color) !important;
+    color: var(--white) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+.nav-header {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Sidebar Treeview */
+.nav-treeview>.nav-item>.nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.nav-treeview>.nav-item>.nav-link:hover {
+    background-color: rgba(230, 184, 99, 0.15) !important;
+    color: var(--secondary-color) !important;
+}
+
+.nav-treeview>.nav-item>.nav-link.active {
+    background-color: var(--primary-color) !important;
+    color: var(--white) !important;
+}
+
+/* ========= CARDS & TABLES ========== */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(62, 39, 35, 0.05);
+    background: var(--white);
+}
+
+.card-primary.card-outline {
+    border-top: 3px solid var(--primary-color) !important;
+}
+
+.table thead th {
+    background-color: var(--sidebar-color);
+    color: var(--white);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(128, 0, 0, 0.03);
+}
+
+/* ========= POS GRID ========== */
+.product-card {
+    background: var(--white);
+    border: 1px solid #F0F0F0;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    border-color: var(--secondary-color);
+}
+
+/* ========= SCROLLBAR ========== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #D7CCC8;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* ========= ALERTS ========== */
+.alert-primary {
+    background-color: rgba(128, 0, 0, 0.1) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--primary-dark) !important;
+}
+
+.alert-info {
+    background-color: rgba(230, 184, 99, 0.15) !important;
+    border-color: var(--secondary-color) !important;
+    color: #8D6E00 !important;
+}
+
+/* ========= SIDEBAR CREDITS ========== */
+.sidebar-credits {
+    transition: opacity 0.3s ease;
+}
+
+/* Hide credits when sidebar is collapsed */
+.sidebar-mini.sidebar-collapse .sidebar-credits {
+    display: none !important;
+}
+
+/* Also hide on hover-open state in mini mode */
+.sidebar-mini:not(.sidebar-collapse) .sidebar-credits {
+    display: block;
+}
+
+/* ========= SKELETON LOADING ========== */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ========= IMPROVED FOCUS STATES ========== */
+.btn:focus,
+.form-control:focus,
+.nav-link:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(128, 0, 0, 0.15) !important;
+}
+
+/* ========= SMOOTH HOVER EFFECTS ========== */
+.nav-link,
+.dropdown-item {
+    transition: all 0.15s ease;
+}
+
+/* ========= PROFESSIONAL TABLE STYLING ========== */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+/* ========= SUBTLE LOADING SPINNER ========== */
+.spinner-border-sm {
+    border-color: var(--primary-color);
+    border-right-color: transparent;
+}
+
+/* ========================================================
+   BLUE COLOR OVERRIDES - Complete Theme Consistency
+   Replace all #0876fd, #0876fc, blue with Maroon/Gold
+======================================================== */
+
+/* ========= REACT-SELECT (Customer Dropdown) ========== */
+/* This is the actual component used for customer selection */
+[class*="-control"] {
+    border-color: #d3d6df !important;
+    border-radius: 8px !important;
+    min-height: 38px !important;
+    box-shadow: none !important;
+}
+
+[class*="-control"]:hover {
+    border-color: var(--primary-color) !important;
+}
+
+[class*="-control--is-focused"],
+[class*="-control--menu-is-open"] {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 1px var(--primary-color) !important;
+}
+
+/* Dropdown menu */
+[class*="-menu"] {
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid var(--primary-color) !important;
+    z-index: 9999 !important;
+}
+
+/* Option hover - MAROON instead of blue */
+[class*="-option--is-focused"],
+[class*="-option"]:hover {
+    background-color: rgba(128, 0, 0, 0.1) !important;
+    color: var(--primary-color) !important;
+}
+
+/* Option selected - MAROON */
+[class*="-option--is-selected"] {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+/* Multi-value tags */
+[class*="-multiValue"] {
+    background-color: rgba(128, 0, 0, 0.1) !important;
+    border-radius: 4px !important;
+}
+
+[class*="-multiValue__label"] {
+    color: var(--primary-color) !important;
+}
+
+[class*="-multiValue__remove"]:hover {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+/* Indicator colors */
+[class*="-indicatorSeparator"] {
+    background-color: #d3d6df !important;
+}
+
+[class*="-dropdownIndicator"],
+[class*="-clearIndicator"] {
+    color: #999 !important;
+}
+
+[class*="-dropdownIndicator"]:hover,
+[class*="-clearIndicator"]:hover {
+    color: var(--primary-color) !important;
+}
+
+/* ========= SELECT2 (Backup if used elsewhere) ========== */
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+.select2-container--default .select2-results__option--selected {
+    background-color: rgba(128, 0, 0, 0.1) !important;
+    color: var(--primary-color) !important;
+}
+
+/* ========= MINIMAL FOCUS - Only where needed ========== */
+/* Remove aggressive focus from regular text inputs */
+.form-control:focus,
+input:focus,
+textarea:focus {
+    border-color: #aaa !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Keep subtle focus only for select dropdowns */
+select:focus,
+.custom-select:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: none !important;
+}
+
+/* Checkbox Overrides */
+.customcheck-box:checked~.customcheck-label::before,
+.custom-control-input:checked~.custom-control-label::before,
+input[type="checkbox"]:checked {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.icheck-primary>input:first-child:checked+label::before,
+.icheck-primary>input:first-child:checked+input[type="hidden"]+label::before {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Link Hover States */
+a:hover,
+.nav-link:hover,
+.dropdown-item:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Active/Selected States */
+.nav-link.active,
+.page-link.active,
+.active>.page-link {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* ========= GENERAL SETTINGS VERTICAL TABS FIX ========== */
+/* ONLY target the vertical tabs in settings page, NOT the sidebar */
+#vert-tabs-tab.nav-tabs .nav-link.active,
+.nav.flex-column.nav-tabs .nav-link.active {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+    border-color: var(--primary-color) !important;
+}
+
+#vert-tabs-tab.nav-tabs .nav-link:not(.active),
+.nav.flex-column.nav-tabs .nav-link:not(.active) {
+    background-color: #f8f9fa !important;
+    color: var(--text-color) !important;
+    border-color: #dee2e6 !important;
+}
+
+#vert-tabs-tab.nav-tabs .nav-link:hover:not(.active),
+.nav.flex-column.nav-tabs .nav-link:hover:not(.active) {
+    background-color: rgba(128, 0, 0, 0.1) !important;
+    color: var(--primary-color) !important;
+}
+
+/* OTP Input Focus */
+.otp-container input[type=text]:focus {
+    border-color: var(--primary-color) !important;
+}
+
+/* Text Selection */
+::selection {
+    background: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+::-moz-selection {
+    background: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+/* SweetAlert2 Buttons */
+.swal2-confirm {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.swal2-confirm:hover {
+    background-color: var(--primary-dark) !important;
+}
+
+/* Toast Notifications */
+.toast-success {
+    background-color: var(--secondary-color) !important;
+}
+
+/* DataTables */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+/* Bootstrap Primary Overrides (catch-all) */
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+/* File Input Button */
+input[type=file]::file-selector-button {
+    background: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+input[type=file]::file-selector-button:hover {
+    background: var(--primary-dark) !important;
+}
+
+/* ========= SYSTEM NATIVE FONT SMOOTHING ========== */
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========= ADDITIONAL UI FIXES ========== */
+/* Progress Bars */
+.progress-bar {
+    background-color: var(--primary-color) !important;
+}
+
+.progress-bar.bg-success {
+    background-color: var(--secondary-color) !important;
+}
+
+/* Breadcrumb */
+.breadcrumb-item.active {
+    color: var(--primary-color) !important;
+}
+
+.breadcrumb-item a {
+    color: var(--text-color) !important;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Info Boxes */
+.info-box-icon.bg-primary,
+.small-box.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.info-box-icon.bg-info,
+.small-box.bg-info {
+    background-color: var(--secondary-color) !important;
+}
+
+/* Card Ribbon */
+.ribbon-wrapper .ribbon {
+    background-color: var(--primary-color) !important;
+}
+
+/* Timeline */
+.timeline>.time-label>span,
+.timeline-item>.time {
+    color: var(--primary-color) !important;
+}
+
+/* Switch/Toggle */
+.custom-switch .custom-control-input:checked~.custom-control-label::before {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Slider Toggle */
+.switch input:checked+.slider {
+    background-color: var(--primary-color) !important;
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Modal Header */
+.modal-header {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+    border-radius: 0 !important;
+}
+
+.modal-header .close {
+    color: #fff !important;
+}
+
+.modal-title {
+    color: #fff !important;
+}
+
+/* List Group */
+.list-group-item.active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Calendar */
+.fc-today-button,
+.fc-button-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Loading Overlay */
+.overlay>.fa,
+.overlay-wrapper .overlay>i {
+    color: var(--primary-color) !important;
+}
+
+/* Input Group Addon */
+.input-group-text {
+    background-color: #f4f4f4 !important;
+    border-color: #d3d6df !important;
+}
+
+/* Callout */
+.callout.callout-primary {
+    border-left-color: var(--primary-color) !important;
+}
+
+.callout.callout-info {
+    border-left-color: var(--secondary-color) !important;
+}

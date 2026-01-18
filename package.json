@@ -1,0 +1,193 @@
+{
+  "private": true,
+  "type": "commonjs",
+  "name": "mithai-pos",
+  "version": "1.0.0",
+  "description": "Mithai POS - Professional Point of Sale System for Sweet Shops",
+  "main": "main.cjs",
+  "author": {
+    "name": "SINYX",
+    "email": "think.code.sync",
+    "url": "https://github.com/sinyx"
+  },
+  "license": "UNLICENSED",
+  "copyright": "Copyright © 2026 SINYX. All Rights Reserved.",
+  "scripts": {
+    "dev": "vite --config vite.config.js",
+    "build": "vite build --config vite.config.js",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:installer": "electron-builder --win nsis",
+    "postinstall": "echo Ensure Visual C++ 2015-2022 Redistributable is installed!"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "axios": "^1.7.7",
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.7.3",
+    "lodash": "^4.17.21",
+    "mysql2": "^3.5.0",
+    "react": "^18.3.1",
+    "react-barcode": "^1.6.1",
+    "react-datepicker": "^7.5.0",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.4.1",
+    "react-select": "^5.8.1",
+    "react-to-print": "^3.2.0",
+    "sweetalert2": "^11.14.1",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "electron": "^37.3.1",
+    "electron-builder": "^24.13.3",
+    "laravel-vite-plugin": "^0.7.5",
+    "vite": "^4.0.0"
+  },
+  "build": {
+    "appId": "com.sinyx.mithai-pos",
+    "productName": "Mithai POS",
+    "artifactName": "Mithai-POS-Setup-${version}.${ext}",
+    "copyright": "Copyright © 2026 SINYX. All Rights Reserved.",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "icon": "pos-icon.ico",
+    "files": [
+      "**/*",
+      "!node_modules/**/*.map",
+      "!nodejs/**/*",
+      "!php/**/*",
+      "!mysql/**/*",
+      "!vendor/**/*",
+      "!storage/**/*",
+      "!database/**/*",
+      "!tmp/**/*",
+      "!*.bat",
+      "!*.vbs",
+      "!*.py",
+      "!*.md",
+      "!.git/**/*",
+      "!.env.example",
+      "!last_logs.txt",
+      "!crop_splash.py",
+      "!update_icons.py"
+    ],
+    "extraResources": [
+      {
+        "from": "php/",
+        "to": "php/"
+      },
+      {
+        "from": "mysql/",
+        "to": "mysql/"
+      },
+      {
+        "from": "nodejs/",
+        "to": "nodejs/"
+      },
+      {
+        "from": "vendor/",
+        "to": "vendor/"
+      },
+      {
+        "from": "app/",
+        "to": "app/"
+      },
+      {
+        "from": "artisan",
+        "to": "artisan"
+      },
+      {
+        "from": "bootstrap/",
+        "to": "bootstrap/"
+      },
+      {
+        "from": "config/",
+        "to": "config/"
+      },
+      {
+        "from": "routes/",
+        "to": "routes/"
+      },
+      {
+        "from": "resources/",
+        "to": "resources/"
+      },
+      {
+        "from": "public/",
+        "to": "public/"
+      },
+      {
+        "from": "storage/",
+        "to": "storage/"
+      },
+      {
+        "from": "database/",
+        "to": "database/"
+      },
+      {
+        "from": ".env",
+        "to": ".env"
+      },
+      {
+        "from": "my.ini",
+        "to": "mysql/my.ini"
+      },
+      {
+        "from": "splash.html",
+        "to": "splash.html"
+      },
+      {
+        "from": "composer.json",
+        "to": "composer.json"
+      },
+      {
+        "from": "composer.lock",
+        "to": "composer.lock"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "pos-icon.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mithai POS",
+      "installerIcon": "pos-icon.ico",
+      "uninstallerIcon": "pos-icon.ico"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "imbasito",
+        "repo": "mithai-pos"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imbasito/mithai-pos"
+  },
+  "keywords": [
+    "pos",
+    "point-of-sale",
+    "mithai",
+    "sweet-shop",
+    "retail"
+  ],
+  "homepage": "https://github.com/imbasito/"
+}
