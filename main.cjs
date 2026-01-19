@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const path = require('path');
@@ -205,40 +205,59 @@ function createMainWindow() {
 // AUTO-UPDATER
 // ============================================
 function setupAutoUpdater() {
+    autoUpdater.autoDownload = false; // Important for our manual flow
+
     // Initial silent check
     if (app.isPackaged) {
-        autoUpdater.checkForUpdatesAndNotify();
+        autoUpdater.checkForUpdatesAndNotify().catch(err => console.error('Silent update check failed:', err));
     }
 
     // IPC Listeners
     ipcMain.on('updater:check', () => {
+        console.log('Manual update check requested...');
+        
+        // If not packaged, we can't really check GitHub easily without dev-app-update.yml
+        if (!app.isPackaged) {
+            console.log('Update check skipped (Not Packaged)');
+            setTimeout(() => {
+                mainWindow.webContents.send('updater:status', 'latest');
+            }, 1000);
+            return;
+        }
+
         autoUpdater.checkForUpdates()
             .then(result => {
+                console.log('Update check result:', result ? 'Update found' : 'No update');
+                // result might be null if no update
                 if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
                     mainWindow.webContents.send('updater:status', 'latest');
                 }
             })
             .catch(err => {
                 console.error('Check for updates error:', err);
-                mainWindow.webContents.send('updater:status', 'error');
+                mainWindow.webContents.send('updater:status', 'error', err.message);
             });
     });
 
     ipcMain.on('updater:download', () => {
+        console.log('Starting update download...');
         autoUpdater.downloadUpdate();
     });
 
     ipcMain.on('updater:install', () => {
+        console.log('Restarting to install update...');
         killProcesses();
         autoUpdater.quitAndInstall();
     });
 
     // Event Handlers
     autoUpdater.on('update-available', (info) => {
+        console.log('Update-available event:', info.version);
         mainWindow.webContents.send('updater:status', 'available', info);
     });
 
     autoUpdater.on('update-not-available', () => {
+        console.log('Update-not-available event');
         mainWindow.webContents.send('updater:status', 'latest');
     });
 
@@ -247,11 +266,12 @@ function setupAutoUpdater() {
     });
 
     autoUpdater.on('update-downloaded', (info) => {
+        console.log('Update-downloaded event:', info.version);
         mainWindow.webContents.send('updater:ready', info);
     });
 
     autoUpdater.on('error', (err) => {
-        console.error('Auto-updater error:', err);
+        console.error('Auto-updater error event:', err);
         mainWindow.webContents.send('updater:status', 'error', err.message);
     });
 }
@@ -312,10 +332,8 @@ async function startApp() {
         updateSplashStatus('Opening POS...');
         createMainWindow();
 
-        // Check for updates in the background after app starts
-        if (app.isPackaged) {
-            setupAutoUpdater();
-        }
+        // Initialize auto-updater
+        setupAutoUpdater();
 
     } catch (error) {
         console.error('Startup error:', error);

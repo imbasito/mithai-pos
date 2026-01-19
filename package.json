@@ -2,7 +2,7 @@
   "private": true,
   "type": "commonjs",
   "name": "mithai-pos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Mithai POS - Professional Point of Sale System for Sweet Shops",
   "main": "main.cjs",
   "author": {
