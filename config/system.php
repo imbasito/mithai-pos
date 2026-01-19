@@ -44,6 +44,6 @@
   'backup_path' => '',
   'auto_backup' => 'disabled',
   'last_backup_date' => '2026-01-19 15:25:32',
-  'license_key' => 'MPOS-eyJzaG9wIjoiSXQncyBtZSBCYXNpdCIsImV4cGlyeSI6IjIwMjctMDEtMTgiLCJtYWNoaW5lIjoiRTgwQTA3MDJEMzE0IiwiY3JlYXRlZCI6IjIwMjYtMDEtMTkifQ==-365B3379',
-  'licensed_to' => 'It\'s me Basit',
+  'license_key' => '',
+  'licensed_to' => '',
 );
