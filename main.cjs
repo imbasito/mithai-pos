@@ -176,8 +176,9 @@ function createMainWindow() {
         show: false,
         backgroundColor: '#FFFDF9',
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.cjs')
         }
     });
 
@@ -204,29 +205,54 @@ function createMainWindow() {
 // AUTO-UPDATER
 // ============================================
 function setupAutoUpdater() {
-    autoUpdater.checkForUpdatesAndNotify();
+    // Initial silent check
+    if (app.isPackaged) {
+        autoUpdater.checkForUpdatesAndNotify();
+    }
 
-    autoUpdater.on('update-available', () => {
-        console.log('Update available. Downloading...');
+    // IPC Listeners
+    ipcMain.on('updater:check', () => {
+        autoUpdater.checkForUpdates()
+            .then(result => {
+                if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
+                    mainWindow.webContents.send('updater:status', 'latest');
+                }
+            })
+            .catch(err => {
+                console.error('Check for updates error:', err);
+                mainWindow.webContents.send('updater:status', 'error');
+            });
+    });
+
+    ipcMain.on('updater:download', () => {
+        autoUpdater.downloadUpdate();
+    });
+
+    ipcMain.on('updater:install', () => {
+        killProcesses();
+        autoUpdater.quitAndInstall();
+    });
+
+    // Event Handlers
+    autoUpdater.on('update-available', (info) => {
+        mainWindow.webContents.send('updater:status', 'available', info);
+    });
+
+    autoUpdater.on('update-not-available', () => {
+        mainWindow.webContents.send('updater:status', 'latest');
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+        mainWindow.webContents.send('updater:progress', progressObj);
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-        dialog.showMessageBox({
-            type: 'info',
-            title: 'Update Ready',
-            message: `A new version (${info.version}) is ready. Would you like to restart and update now?`,
-            buttons: ['Restart', 'Later'],
-            defaultId: 0
-        }).then((result) => {
-            if (result.response === 0) {
-                killProcesses();
-                autoUpdater.quitAndInstall();
-            }
-        });
+        mainWindow.webContents.send('updater:ready', info);
     });
 
     autoUpdater.on('error', (err) => {
         console.error('Auto-updater error:', err);
+        mainWindow.webContents.send('updater:status', 'error', err.message);
     });
 }
 

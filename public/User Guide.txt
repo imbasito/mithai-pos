@@ -1,0 +1,102 @@
+# Mithai POS - User Guide
+
+Welcome to Mithai POS! This guide will help you get started with your Point of Sale system.
+
+---
+
+## Getting Started
+
+### First Launch
+
+1. Double-click the **Mithai POS** icon on your desktop
+2. Wait for the splash screen to finish loading
+3. Enter your **License Key** when prompted
+4. Login with your credentials
+
+### Default Login
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@mithaishop.com | admin123 |
+| Cashier | cashier@mithaishop.com | cashier123 |
+
+> **Important:** Change these passwords after first login!
+
+---
+
+## Quick Start
+
+### Making a Sale
+
+1. Click **POS** in the sidebar
+2. Search for products or scan barcode
+3. Adjust quantities as needed
+4. Select payment method
+5. Click **Complete Sale**
+6. Print receipt if required
+
+### Adding a Product
+
+1. Go to **Products** → **Product List**
+2. Click **Add New**
+3. Fill in product details
+4. Set price and stock
+5. Click **Save**
+
+---
+
+## Features
+
+### Inventory
+- Track stock levels automatically
+- Get low-stock alerts
+- Import products via CSV
+
+### Customers
+- Save customer information
+- View purchase history
+- Track customer balances
+
+### Reports
+- Daily sales summary
+- Inventory reports
+- Expense tracking
+
+### Settings
+- Customize receipts
+- Manage users
+- Backup your data
+
+---
+
+## Tips
+
+- **Regular Backups:** Go to Settings → Backup weekly
+- **Receipt Printer:** Set up your printer in Windows first
+- **Keyboard Shortcuts:** Press F1 for quick help
+
+---
+
+## Troubleshooting
+
+### App won't start
+- Run as Administrator
+- Check if antivirus is blocking
+
+### Database error
+- Restart the application
+- Contact support if issue persists
+
+### Printer not working
+- Check Windows printer settings
+- Ensure printer is set as default
+
+---
+
+## Support
+
+For assistance, contact your software provider.
+
+---
+
+**Version 1.0.0** | **© 2026 SINYX**

@@ -50,7 +50,7 @@
     "artifactName": "Mithai-POS-Setup-${version}.${ext}",
     "copyright": "Copyright © 2026 SINYX. All Rights Reserved.",
     "directories": {
-      "output": "dist",
+      "output": "dist_production",
       "buildResources": "build"
     },
     "icon": "pos-icon.ico",
@@ -132,7 +132,7 @@
         "to": ".env"
       },
       {
-        "from": "my.ini",
+        "from": "mysql/my.ini",
         "to": "mysql/my.ini"
       },
       {

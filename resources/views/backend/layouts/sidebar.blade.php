@@ -325,22 +325,7 @@ $route = request()->route()->getName();
                         </a>
                     </li>
                     @endif
-                    @can('setting_view')
-                    <li class="nav-item">
-                        <a href="{{ route('backend.admin.settings.backup') }}"
-                            class="nav-link {{ $route === 'backend.admin.settings.backup' ? 'active' : '' }}">
-                            <i class="fas fa-database nav-icon"></i>
-                            <p>Backup & Restore</p>
-                        </a>
-                    </li>
-                    @endcan
-                    <li class="nav-item">
-                        <a href="{{ route('backend.admin.license') }}"
-                            class="nav-link {{ $route === 'backend.admin.license' ? 'active' : '' }}">
-                            <i class="fas fa-key nav-icon"></i>
-                            <p>License Information</p>
-                        </a>
-                    </li>
+
                     @if (auth()->user()->hasAnyPermission(['currency_create','currency_view','currency_update','currency_delete']))
                     <li class="nav-item">
                         <a href="{{ route('backend.admin.currencies.index') }}"
@@ -408,13 +393,31 @@ $route = request()->route()->getName();
                 </ul>
             </li>
             @endif
+
+
+            <li class="nav-header">SYSTEM</li>
+            
             <li class="nav-item">
                 <a href="{{ route('backend.admin.barcode') }}"
                     class="nav-link {{ $route === 'backend.admin.barcode' ? 'active' : '' }}">
                     <i class="nav-icon fas fa-barcode"></i>
-                    <p>
-                        Barcode
-                    </p>
+                    <p>Barcode Generator</p>
+                </a>
+            </li>
+            @can('setting_view')
+            <li class="nav-item">
+                <a href="{{ route('backend.admin.settings.backup') }}"
+                    class="nav-link {{ $route === 'backend.admin.settings.backup' ? 'active' : '' }}">
+                    <i class="fas fa-database nav-icon"></i>
+                    <p>Backup & Restore</p>
+                </a>
+            </li>
+            @endcan
+            <li class="nav-item">
+                <a href="{{ route('backend.admin.license') }}"
+                    class="nav-link {{ $route === 'backend.admin.license' ? 'active' : '' }}">
+                    <i class="fas fa-sync-alt nav-icon"></i>
+                    <p>System & Updates</p>
                 </a>
             </li>
         </ul>

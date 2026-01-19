@@ -1,6 +1,6 @@
 <footer class="main-footer d-flex justify-content-between align-items-center">
     <div>
-        <strong>© {{date('Y')}} <a href="{{ readConfig('site_url') }}">{{ readConfig('site_name') }} </a></strong>
+        <strong>© {{date('Y')}} <a href="#">SINYX POS </a></strong>
         All rights reserved.
     </div>
     <div class="text-muted" style="font-size: 11px;">

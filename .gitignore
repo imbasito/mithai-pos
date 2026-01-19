@@ -23,9 +23,17 @@ yarn-error.log
 # Build / Electron
 /out/
 /dist/
+/dist_production/
 *.exe
 *.msi
 *.zip
+
+# Build Logs & Temp Files
+build_*.log
+build-output*.txt
+bad_json_report.txt
+npm_*.json
+last_logs.txt
 
 # Software Engines (Excluded for Option B)
 /php/
