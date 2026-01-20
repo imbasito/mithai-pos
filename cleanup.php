@@ -44,7 +44,28 @@ if (file_exists($systemConfigPath)) {
     echo "License configuration reset.\n";
 }
 
-// 4. Clear Laravel Cache
+// 4. Ensure Critical Directories Exist (Safety for Build)
+$dirsToEnsure = [
+    $root . '/storage/framework/sessions',
+    $root . '/storage/framework/cache',
+    $root . '/storage/framework/views',
+    $root . '/storage/logs',
+];
+
+foreach ($dirsToEnsure as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+        echo "Created missing directory: $dir\n";
+    }
+    // Also ensure a .gitignore exists in each to prevent future pruning
+    $gitignoreFile = $dir . '/.gitignore';
+    if (!file_exists($gitignoreFile)) {
+        file_put_contents($gitignoreFile, "*\n!.gitignore\n");
+        echo "Created .gitignore in: $dir\n";
+    }
+}
+
+// 5. Clear Laravel Cache
 echo "Clearing application cache...\n";
 @shell_exec('php artisan optimize:clear');
 
