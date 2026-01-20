@@ -1,6 +1,6 @@
-# Mithai POS - Professional Sweet Shop Management System
+# SPOS - Professional Sweet Shop Management System
 
-![Mithai POS Logo](public/assets/images/branding/sinyx-slogan.png)
+![SPOS Logo](public/assets/images/branding/sinyx-slogan.png)
 
 A robust, high-performance desktop Point of Sale (POS) system designed specifically for sweet shops. Built with **Laravel 10**, **React**, and **Electron**, it combines the power of modern web technologies with the reliability of a native desktop application.
 
@@ -23,10 +23,10 @@ A robust, high-performance desktop Point of Sale (POS) system designed specifica
 
 ## 📦 Installation for Clients
 
-1. Download the latest `Mithai-POS-Setup.exe` from the [Releases](https://github.com/imbasito/mithai-pos/releases) page.
+1. Download the latest `SPOS-Setup.exe` from the [Releases](https://github.com/imbasito/spos/releases) page.
 2. Run the installer and follow the on-screen instructions.
-3. The application will request **Administrator Privileges** to manage local services.
-4. Once installed, launch "Mithai POS" from your desktop.
+3. Once the installation is complete, you will see a shortcut on your desktop.
+4. Once installed, launch "SPOS" from your desktop.
 
 ## 💻 Developer Setup
 
@@ -37,8 +37,8 @@ A robust, high-performance desktop Point of Sale (POS) system designed specifica
 ### Initial Configuration
 1. Clone the repository:
    ```bash
-   git clone https://github.com/imbasito/mithai-pos.git
-   cd mithai-pos
+   git clone https://github.com/imbasito/spos.git
+   cd spos
    ```
 2. Setup environment variables:
    ```bash

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('sku')->unique();
+            $table->string('barcode')->nullable()->unique();
             $table->text('description')->nullable();
             $table->foreignIdFor(Category::class)->nullable()->constrained()->nullOnDelete();
             $table->foreignIdFor(Brand::class)->nullable()->constrained()->nullOnDelete();

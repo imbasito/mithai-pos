@@ -1,6 +1,6 @@
-# Mithai POS - User Guide
+# SPOS - User Guide
 
-Welcome to Mithai POS! This guide will help you get started with your Point of Sale system.
+Welcome to SPOS! This guide will help you get started with your Point of Sale system.
 
 ---
 
@@ -8,7 +8,7 @@ Welcome to Mithai POS! This guide will help you get started with your Point of S
 
 ### First Launch
 
-1. Double-click the **Mithai POS** icon on your desktop
+1. Double-click the **SPOS** icon on your desktop
 2. Wait for the splash screen to finish loading
 3. Enter your **License Key** when prompted
 4. Login with your credentials
@@ -17,8 +17,8 @@ Welcome to Mithai POS! This guide will help you get started with your Point of S
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@mithaishop.com | admin123 |
-| Cashier | cashier@mithaishop.com | cashier123 |
+| Admin | admin@spos.com | admin123 |
+| Cashier | cashier@spos.com | cashier123 |
 
 > **Important:** Change these passwords after first login!
 

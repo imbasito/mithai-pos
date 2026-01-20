@@ -36,6 +36,7 @@ class ProductSeeder extends Seeder
                 'name' => $faker->name(),
                 'slug' => $faker->slug(),
                 'sku' => $faker->unique()->uuid(),
+                'barcode' => $faker->unique()->ean13(),
                 'description' => $faker->paragraph(),
                 'category_id' => Category::inRandomOrder()->first()->id,
                 'brand_id' => Brand::inRandomOrder()->first()->id,

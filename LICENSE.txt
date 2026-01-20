@@ -1,11 +1,11 @@
-MITHAI POS - END USER LICENSE AGREEMENT
+SPOS - END USER LICENSE AGREEMENT
 
 Copyright © 2026 SINYX. All Rights Reserved.
 
 IMPORTANT: READ CAREFULLY BEFORE INSTALLING OR USING THIS SOFTWARE.
 
 This End User License Agreement ("Agreement") is a legal agreement between you 
-("User") and SINYX ("Developer") for the use of Mithai POS software 
+("User") and SINYX ("Developer") for the use of SPOS software 
 ("Software").
 
 By installing or using this Software, you agree to be bound by the terms of 

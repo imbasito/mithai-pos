@@ -395,6 +395,7 @@ $route = request()->route()->getName();
             @endif
 
 
+            @role('Admin')
             <li class="nav-header">SYSTEM</li>
             
             <li class="nav-item">
@@ -404,7 +405,6 @@ $route = request()->route()->getName();
                     <p>Barcode Generator</p>
                 </a>
             </li>
-            @can('setting_view')
             <li class="nav-item">
                 <a href="{{ route('backend.admin.settings.backup') }}"
                     class="nav-link {{ $route === 'backend.admin.settings.backup' ? 'active' : '' }}">
@@ -412,7 +412,6 @@ $route = request()->route()->getName();
                     <p>Backup & Restore</p>
                 </a>
             </li>
-            @endcan
             <li class="nav-item">
                 <a href="{{ route('backend.admin.license') }}"
                     class="nav-link {{ $route === 'backend.admin.license' ? 'active' : '' }}">
@@ -420,6 +419,7 @@ $route = request()->route()->getName();
                     <p>System & Updates</p>
                 </a>
             </li>
+            @endrole
         </ul>
     </nav>
     <!-- /.sidebar-menu -->

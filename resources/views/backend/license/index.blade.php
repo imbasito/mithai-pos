@@ -203,7 +203,7 @@
                 postCheckActions.classList.remove('d-none');
             } else if (status === 'latest') {
                 updateText.innerText = 'You are up to date!';
-                updateSubtext.innerText = 'You are already running the latest version of Mithai POS.';
+                updateSubtext.innerText = 'You are already running the latest version of SPOS.';
                 updateIcon.className = 'fas fa-check-circle text-success update-icon';
             } else if (status === 'error') {
                 updateText.innerText = 'Check Failed';

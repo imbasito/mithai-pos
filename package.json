@@ -1,9 +1,9 @@
 {
   "private": true,
   "type": "commonjs",
-  "name": "mithai-pos",
-  "version": "1.0.2",
-  "description": "Mithai POS - Professional Point of Sale System for Sweet Shops",
+  "name": "spos",
+  "version": "1.0.3",
+  "description": "SPOS - Professional Point of Sale System for Sweet Shops",
   "main": "main.cjs",
   "author": {
     "name": "SINYX",
@@ -17,8 +17,9 @@
     "build": "vite build --config vite.config.js",
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:installer": "electron-builder --win nsis",
+    "dist": "npm run sanitize && electron-builder",
+    "dist:installer": "npm run sanitize && electron-builder --win nsis",
+    "sanitize": "php cleanup.php",
     "postinstall": "echo Ensure Visual C++ 2015-2022 Redistributable is installed!"
   },
   "dependencies": {
@@ -45,9 +46,9 @@
     "vite": "^4.0.0"
   },
   "build": {
-    "appId": "com.sinyx.mithai-pos",
-    "productName": "Mithai POS",
-    "artifactName": "Mithai-POS-Setup-${version}.${ext}",
+    "appId": "com.sinyx.spos",
+    "productName": "SPOS",
+    "artifactName": "SPOS-Setup-${version}.${ext}",
     "copyright": "Copyright © 2026 SINYX. All Rights Reserved.",
     "directories": {
       "output": "dist_production",
@@ -166,7 +167,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Mithai POS",
+      "shortcutName": "SPOS",
       "installerIcon": "pos-icon.ico",
       "uninstallerIcon": "pos-icon.ico"
     },
@@ -174,13 +175,13 @@
       {
         "provider": "github",
         "owner": "imbasito",
-        "repo": "mithai-pos"
+        "repo": "spos"
       }
     ]
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/imbasito/mithai-pos"
+    "url": "https://github.com/imbasito/spos"
   },
   "keywords": [
     "pos",

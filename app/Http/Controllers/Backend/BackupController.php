@@ -18,7 +18,7 @@ class BackupController extends Controller
     public function __construct()
     {
         // Default backup directory in user's Documents
-        $this->defaultBackupPath = getenv('USERPROFILE') . '\\Documents\\Mithai POS Backups';
+        $this->defaultBackupPath = getenv('USERPROFILE') . '\\Documents\\SPOS Backups';
         
         // MySQL tools path (relative to app root)
         $basePath = base_path();

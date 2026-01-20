@@ -188,18 +188,16 @@
                         </div> -->
                     </div>
                 </div>
-                <div class="authentication-form-footer">
-                    <p>Don’t have an account? <a href="{{ route('signup') }}">Sign up </a></p>
-                </div>
+                {{-- Removed Signup Option as per user request --}}
             </form>
         </div>
         
-        <!-- Developer Credits - Apple Style -->
-        <div style="position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; z-index: 1000;">
-            <p style="font-size: 10px; color: #86868b; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                <span style="opacity: 0.5;">v1.0.0</span>
-                <span style="margin: 0 6px; opacity: 0.3;">·</span>
-                Developed by <span style="font-weight: 600; color: #1d1d1f;">SINYX</span>
+        <!-- Developer Credits - Bottom Right Fixed -->
+        <div style="position: fixed; bottom: 15px; right: 25px; text-align: right; z-index: 1000;">
+            <p style="font-size: 11px; color: #86868b; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: 0.2px;">
+                <span style="opacity: 0.6;">v{{ json_decode(file_get_contents(base_path('package.json')))->version }}</span>
+                <span style="margin: 0 8px; opacity: 0.3;">|</span>
+                Developed by <span style="font-weight: 600; color: #1d1d1f; letter-spacing: 0.3px;">SINYX</span>
             </p>
         </div>
     </section>

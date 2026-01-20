@@ -1,0 +1,51 @@
+<?php
+/**
+ * SPOS - Build Sanitization Script
+ * This script ensures no developer session data or logs are shipped with the production build.
+ */
+
+$root = __DIR__;
+
+echo "--- Starting SPOS Sanitization ---\n";
+
+// 1. Clear Sessions
+$sessionPath = $root . '/storage/framework/sessions';
+if (is_dir($sessionPath)) {
+    $files = glob($sessionPath . '/*');
+    foreach ($files as $file) {
+        if (is_file($file) && basename($file) !== '.gitignore') {
+            unlink($file);
+            echo "Deleted session: " . basename($file) . "\n";
+        }
+    }
+}
+
+// 2. Clear Logs
+$logPath = $root . '/storage/logs';
+if (is_dir($logPath)) {
+    $files = glob($logPath . '/*.log');
+    foreach ($files as $file) {
+        if (is_file($file)) {
+            unlink($file);
+            echo "Deleted log: " . basename($file) . "\n";
+        }
+    }
+}
+
+// 3. Reset License (Safety Check)
+$systemConfigPath = $root . '/config/system.php';
+if (file_exists($systemConfigPath)) {
+    $config = include $systemConfigPath;
+    $config['license_key'] = '';
+    $config['licensed_to'] = '';
+    
+    $content = "<?php return " . var_export($config, true) . ";";
+    file_put_contents($systemConfigPath, $content);
+    echo "License configuration reset.\n";
+}
+
+// 4. Clear Laravel Cache
+echo "Clearing application cache...\n";
+@shell_exec('php artisan optimize:clear');
+
+echo "--- Sanitization Complete ---\n";

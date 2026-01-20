@@ -1,4 +1,4 @@
-# Mithai POS - Version & Dependency Documentation
+# SPOS - Version & Dependency Documentation
 
 ## Application Version
 **Version**: 1.0.0  

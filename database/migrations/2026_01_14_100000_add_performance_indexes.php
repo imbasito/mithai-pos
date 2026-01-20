@@ -38,8 +38,8 @@ return new class extends Migration
         });
 
         // Cart table index for faster user cart lookup
-        Schema::table('carts', function (Blueprint $table) {
-            if (!$this->hasIndex('carts', 'idx_carts_user_id')) {
+        Schema::table('pos_carts', function (Blueprint $table) {
+            if (!$this->hasIndex('pos_carts', 'idx_carts_user_id')) {
                 $table->index('user_id', 'idx_carts_user_id');
             }
         });
@@ -59,7 +59,7 @@ return new class extends Migration
             $table->dropIndex('idx_orders_created_at');
         });
 
-        Schema::table('carts', function (Blueprint $table) {
+        Schema::table('pos_carts', function (Blueprint $table) {
             $table->dropIndex('idx_carts_user_id');
         });
     }

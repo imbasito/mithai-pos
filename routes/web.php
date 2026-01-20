@@ -41,6 +41,10 @@ Route::get('/', function () {
     return to_route('login');
 })->name('frontend.home');
 
+// Standalone Activation routes (Public)
+Route::get('/activate', [\App\Http\Controllers\Backend\LicenseController::class, 'showActivate'])->name('license.activate.show');
+Route::post('/activate', [\App\Http\Controllers\Backend\LicenseController::class, 'activatePublic'])->name('license.activate.public');
+
 //authentication
 Route::match(['get', 'post'], 'login', [AuthController::class, 'login'])->name('login');
 

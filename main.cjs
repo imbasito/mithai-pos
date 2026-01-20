@@ -170,7 +170,7 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
-        title: "Mithai POS - Point of Sale System",
+        title: "SPOS - Point of Sale System",
         icon: path.join(basePath, 'pos-icon.ico'),
         autoHideMenuBar: true,
         show: false,
@@ -324,10 +324,10 @@ async function startApp() {
         await startLaravel(laravelPort);
 
         updateSplashStatus('Connecting to database...');
-        await waitForMySQL(MYSQL_PORT, 30000);
+        await waitForMySQL(MYSQL_PORT, 45000);
 
         updateSplashStatus('Loading application...');
-        await waitForLaravel(laravelPort, 30000);
+        await waitForLaravel(laravelPort, 60000);
 
         updateSplashStatus('Opening POS...');
         createMainWindow();

@@ -114,13 +114,13 @@ class RolePermissionSeeder extends Seeder
         // Create users and assign roles
         $cashierUser = User::create([
             'name' => 'Cashier',
-            'email' => 'cashier@mithaishop.com',
+            'email' => 'cashier@spos.com',
             'password' => bcrypt('cashier123'),
             'username' => 'cashier',
         ]);
         $salesUser = User::create([
             'name' => 'Sales',
-            'email' => 'sales@mithaishop.com',
+            'email' => 'sales@spos.com',
             'password' => bcrypt('sales123'),
             'username' => 'sales',
         ]);

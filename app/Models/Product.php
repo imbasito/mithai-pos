@@ -15,6 +15,7 @@ class Product extends Model
         'name',
         'slug',
         'sku',
+        'barcode',
         'description',
         'category_id',
         'brand_id',

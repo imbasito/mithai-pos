@@ -29,7 +29,7 @@ class ProductionSeeder extends Seeder
         // ====== ADMIN USER ======
         $admin = User::create([
             'name' => 'Administrator',
-            'email' => 'admin@mithaishop.com',
+            'email' => 'admin@spos.com',
             'password' => bcrypt('admin123'),
             'username' => 'admin'
         ]);
@@ -114,7 +114,7 @@ class ProductionSeeder extends Seeder
         // ====== CASHIER USER ======
         $cashier = User::create([
             'name' => 'Cashier',
-            'email' => 'cashier@mithaishop.com',
+            'email' => 'cashier@spos.com',
             'password' => bcrypt('cashier123'),
             'username' => 'cashier'
         ]);
@@ -137,7 +137,7 @@ class ProductionSeeder extends Seeder
         // ====== SALES USER ======
         $sales = User::create([
             'name' => 'Sales',
-            'email' => 'sales@mithaishop.com',
+            'email' => 'sales@spos.com',
             'password' => bcrypt('sales123'),
             'username' => 'sales'
         ]);
@@ -164,9 +164,9 @@ class ProductionSeeder extends Seeder
         $this->command->info('');
         $this->command->info('✅ Production seeder completed!');
         $this->command->info('');
-        $this->command->info('   ADMIN:    admin@mithaishop.com    | admin123');
-        $this->command->info('   CASHIER:  cashier@mithaishop.com  | cashier123');
-        $this->command->info('   SALES:    sales@mithaishop.com    | sales123');
+        $this->command->info('   ADMIN:    admin@spos.com    | admin123');
+        $this->command->info('   CASHIER:  cashier@spos.com  | cashier123');
+        $this->command->info('   SALES:    sales@spos.com    | sales123');
         $this->command->info('');
     }
 }

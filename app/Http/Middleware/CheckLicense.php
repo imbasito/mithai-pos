@@ -13,10 +13,9 @@ class CheckLicense
      * Routes that don't require license check
      */
     protected $except = [
-        'backend.admin.license',
-        'backend.admin.license.activate',
-        'login',
-        'logout',
+        'license.activate.show',
+        'license.activate.public',
+        'frontend.home',
     ];
 
     /**
@@ -25,15 +24,16 @@ class CheckLicense
     public function handle(Request $request, Closure $next): Response
     {
         // Skip license check for excepted routes
-        $currentRoute = $request->route()->getName();
-        if (in_array($currentRoute, $this->except)) {
+        $currentRoute = $request->route() ? $request->route()->getName() : null;
+        
+        if ($currentRoute && in_array($currentRoute, $this->except)) {
             return $next($request);
         }
 
         // Check if license is valid
         if (!LicenseHelper::isActivated()) {
-            return redirect()->route('backend.admin.license')
-                ->with('warning', 'Please activate your license to use the application.');
+            return redirect()->route('license.activate.show')
+                ->with('warning', 'Please activate your license to unlock the application.');
         }
 
         return $next($request);

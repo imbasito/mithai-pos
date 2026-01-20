@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class LicenseController extends Controller
 {
     /**
-     * Show license activation page
+     * Show license activation page in dashboard (System & Updates)
      */
     public function index()
     {
@@ -20,7 +20,39 @@ class LicenseController extends Controller
     }
 
     /**
-     * Activate license
+     * Show standalone activation page for guest/unlicensed users
+     */
+    public function showActivate()
+    {
+        if (LicenseHelper::isActivated()) {
+            return redirect()->route('login');
+        }
+        
+        $machineId = LicenseHelper::getMachineId();
+        return view('activate', compact('machineId'));
+    }
+
+    /**
+     * Activate license from public page
+     */
+    public function activatePublic(Request $request)
+    {
+        $request->validate([
+            'license_key' => 'required|string'
+        ]);
+
+        $licenseKey = trim($request->license_key);
+        $result = LicenseHelper::activate($licenseKey);
+
+        if ($result['valid']) {
+            return redirect()->route('login')->with('success', 'License activated successfully! You can now log in.');
+        } else {
+            return redirect()->back()->with('error', $result['error']);
+        }
+    }
+
+    /**
+     * Activate license from admin dashboard (updates)
      */
     public function activate(Request $request)
     {

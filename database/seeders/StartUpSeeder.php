@@ -20,7 +20,7 @@ class StartUpSeeder extends Seeder
 
         $user = User::create([
             'name' => 'Administrator',
-            'email' => 'admin@mithaishop.com',
+            'email' => 'admin@spos.com',
             'password' => bcrypt('admin123'),
             'username' => 'admin'
         ]);
