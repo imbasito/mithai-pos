@@ -148,14 +148,18 @@
             const btn = document.getElementById('btnPrint');
             const originalText = btn.innerText;
             
-            if (window.electron && window.electron.printSilent) {
+            // Context Bridge Fallback
+            const electronApp = window.electron || (window.opener && window.opener.electron);
+            const settings = window.posSettings || (window.opener && window.opener.posSettings) || {};
+            
+            if (electronApp && electronApp.printSilent) {
                 btn.disabled = true;
                 btn.innerText = 'Printing...';
                 
-                // Use 'tagPrinter' setting if available, else fallback
-                const printerName = window.posSettings && window.posSettings.tagPrinter ? window.posSettings.tagPrinter : '';
+                // Use 'printer_tag' setting if available
+                const printerName = settings.tagPrinter ? settings.tagPrinter : '';
                 
-                window.electron.printSilent(window.location.href, printerName)
+                electronApp.printSilent(window.location.href, printerName)
                     .then(res => {
                         if(!res.success) alert('Print Error: ' + res.error);
                     })
