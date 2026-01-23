@@ -115,4 +115,8 @@ class Product extends Model
         }
         return round($discountedPrice, 2);
     }
+    public function orderProducts()
+    {
+        return $this->hasMany(OrderProduct::class);
+    }
 }

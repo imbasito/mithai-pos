@@ -160,6 +160,7 @@ class PurchaseController extends Controller
                         $existingProduct->decrement('quantity', $oldQuantity);
                         $existingProduct->increment('quantity', $product['qty']);
                     }
+                    \Illuminate\Support\Facades\Cache::flush();
                     DB::commit();
                 } catch (\Exception $e) {
                     DB::rollBack();

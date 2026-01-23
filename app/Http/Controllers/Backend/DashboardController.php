@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\SupportTicket;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -29,6 +30,12 @@ class DashboardController extends Controller
             'total_order' => $orders->count(),
             'total_product' => Product::count(),
             'total_sale_item' => OrderProduct::sum('quantity'),
+            // New analytics
+            'total_profit' => OrderProduct::sum(DB::raw('total - (purchase_price * quantity)')),
+            'top_products' => Product::withCount(['orderProducts as sold_qty' => function($query) {
+                $query->select(DB::raw('sum(quantity)'));
+            }])->orderBy('sold_qty', 'desc')->take(5)->get(),
+            'low_stock_products' => Product::where('quantity', '<', 10)->limit(10)->get(),
         ];
 
 

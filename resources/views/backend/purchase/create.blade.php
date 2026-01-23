@@ -3,9 +3,7 @@
 @section('title', 'Product Purchase')
 
 @section('content')
-</div>
-<section class="content-header" id="purchase">
-</section>
+<div id="purchase"></div>
 @endsection
 @push('style')
 <style>

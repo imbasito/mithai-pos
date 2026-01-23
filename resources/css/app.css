@@ -58,74 +58,139 @@
   appearance: textfield;
 }
 
-/* Refined Product Card - Image Focused */
+/* Custom 3px Padding Utility */
+.px-3px {
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+}
+
+/* Wide Checkout Panel adjustments */
+.pos-left-panel {
+    flex: 0 0 60% !important;
+    max-width: 60% !important;
+}
+
+.pos-right-panel {
+    flex: 0 0 40% !important;
+    max-width: 40% !important;
+}
+
+
+
+/* Global UI Cleanup: Hide standard page headers across all admin pages */
+.content-header {
+    display: none !important;
+}
+
+/* Add padding to the top of content area since headers are gone */
+.content-wrapper > .content > .container-fluid {
+    padding-top: 20px !important;
+}
+
+/* Image-Referenced Product Card Redesign */
 .pos-product-card {
-    border: 1px solid #dee2e6;
+    border: 1px solid #e9ecef;
     border-radius: 12px;
     overflow: hidden;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     background: #fff;
     position: relative;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
 }
 
 .pos-product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-    border-color: #800000;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.08);
+    border-color: #dee2e6;
 }
 
 .pos-product-img-wrapper {
-    height: 125px;
+    height: 160px; /* Taller for better focus */
     overflow: hidden;
-    background: #ffffff;
+    background: #fff;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
-    border-bottom: 1px solid #f1f3f5;
+    padding: 0; /* Flush with card edges like reference */
 }
 
 .pos-product-img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover; /* Important: Matches the food reference image style */
 }
 
-.pos-stock-badge {
+.pos-availability-badge {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #800000;
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 10px;
+    top: 10px;
+    right: 10px;
+    background: #fff;
+    color: #333;
+    padding: 3px 10px;
+    border-radius: 30px;
+    font-size: 13px; /* Increased from 11px */
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     z-index: 2;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pos-availability-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #28a745; /* Available green */
+    margin-right: 6px;
+}
+
+.pos-availability-dot.out-of-stock {
+    background: #dc3545; /* Red */
 }
 
 .pos-product-info {
-    padding: 8px 10px !important;
+    padding: 12px 15px !important;
+}
+
+.pos-product-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .pos-product-name {
-    font-size: 12px;
-    line-height: 1.2;
-    height: 1.25em;
-    overflow: hidden;
+    font-size: 16px; /* Increased from 14px */
+    color: #212529;
+    font-weight: 700;
+    margin: 0 !important;
     white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 2px !important;
-    color: #495057;
-    font-weight: 600;
+    max-width: 65%;
 }
 
 .pos-product-price {
-    font-size: 14px;
-    color: #800000;
-    font-weight: 800;
+    font-size: 16px; /* Increased from 14px */
+    color: #212529;
+    font-weight: 700;
+    margin: 0 !important;
+}
+
+/* Cart & Table Typography Refinement */
+.user-cart .table thead th {
+    font-size: 17px !important; /* Larger headers */
+    font-weight: 800 !important;
+    padding: 12px 8px !important;
+}
+
+.user-cart .table tbody td {
+    font-size: 16px !important; /* Larger row text */
+    vertical-align: middle !important;
+}
+
+.user-cart .qty, .user-cart input.no-spinner {
+    font-size: 16px !important;
+    font-weight: 700 !important;
 }
 

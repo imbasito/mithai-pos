@@ -128,7 +128,7 @@ class ProductController extends Controller
             $product->image = $this->fileHandler->fileUploadAndGetPath($request->file("product_image"), "/public/media/products");
             $product->save();
         }
-
+        \Illuminate\Support\Facades\Cache::flush();
         return redirect()->route('backend.admin.products.index')->with('success', 'Product created successfully!');
     }
 
@@ -171,7 +171,7 @@ class ProductController extends Controller
             $product->save();
             $this->fileHandler->secureUnlink($oldImage);
         }
-
+        \Illuminate\Support\Facades\Cache::flush();
         return redirect()->route('backend.admin.products.index')->with('success', 'Product updated successfully!');
     }
 
@@ -187,6 +187,7 @@ class ProductController extends Controller
             $this->fileHandler->secureUnlink($product->image);
         }
         $product->delete();
+        \Illuminate\Support\Facades\Cache::flush();
         return redirect()->back()->with('success', 'Product Deleted Successfully');
     }
     public function import(Request $request)

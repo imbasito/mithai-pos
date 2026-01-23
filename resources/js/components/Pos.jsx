@@ -17,12 +17,15 @@ import playSound from "../utils/playSound";
 const ProductCard = memo(({ product, onClick, baseUrl }) => (
     <div
         onClick={() => onClick(product.id)}
-        className="col-6 col-md-4 col-lg-3 mb-4 px-2"
+        className="col-6 col-md-4 col-lg-3 mb-3 px-3px"
         style={{ cursor: "pointer" }}
     >
         <div className="pos-product-card h-100">
             <div className="pos-product-img-wrapper">
-                <span className="pos-stock-badge">{product.quantity}</span>
+                <div className="pos-availability-badge">
+                    <span className={`pos-availability-dot ${product.quantity <= 0 ? 'out-of-stock' : ''}`}></span>
+                    {product.quantity > 0 ? `Available ( ${product.quantity} )` : 'Out of Stock'}
+                </div>
                 <img
                     src={`${baseUrl}/storage/${product.image}`}
                     alt={product.name}
@@ -34,12 +37,14 @@ const ProductCard = memo(({ product, onClick, baseUrl }) => (
                     }}
                 />
             </div>
-            <div className="pos-product-info text-center">
-                <div className="pos-product-name" title={product.name}>
-                    {product.name}
-                </div>
-                <div className="pos-product-price">
-                    Rs.{parseFloat(product?.discounted_price || 0).toFixed(2)}
+            <div className="pos-product-info">
+                <div className="pos-product-footer">
+                    <h2 className="pos-product-name" title={product.name}>
+                        {product.name}
+                    </h2>
+                    <span className="pos-product-price">
+                        Rs.{parseFloat(product?.discounted_price || 0).toFixed(0)}
+                    </span>
                 </div>
             </div>
         </div>
@@ -520,7 +525,7 @@ export default function Pos() {
     return (
         <div className="pos-app-container">
             {/* LEFT PANEL: PRODUCTS */}
-            <div className="d-flex flex-column border-right bg-white" style={{ flex: '0 0 65%', maxWidth: '65%' }}>
+            <div className="pos-left-panel d-flex flex-column border-right bg-white">
                 {/* Header / Search */}
                 <div className="p-3 border-bottom shadow-sm bg-light">
                     <div className="d-flex align-items-center">
@@ -567,7 +572,7 @@ export default function Pos() {
             </div>
 
             {/* RIGHT PANEL: CART & CHECKOUT */}
-            <div className="d-flex flex-column bg-white shadow-lg" style={{ flex: '1', zIndex: 10 }}>
+            <div className="pos-right-panel d-flex flex-column bg-white shadow-lg" style={{ zIndex: 10 }}>
                 {/* Customer Select */}
                 <div className="p-3 border-bottom bg-gradient-light">
                     <CustomerSelect setCustomerId={setCustomerId} />
