@@ -66,11 +66,32 @@ class FileHandler
 
     public function fileUploadAndGetPath($file, $path = "/public/media/others")
     {
-        $file_name = time() . "_" . $file->getClientOriginalName();
+        $extension = $file->getClientOriginalExtension();
+        $isImage = in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+        
+        $filenameOnly = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $file_name = time() . "_" . uniqid() . "_" . $filenameOnly;
 
-        $file->storeAs($path, $file_name);
+        if ($isImage) {
+            $file_name .= ".webp";
+            $storingPath = storage_path('app' . $path . '/' . $file_name);
+            
+            // Ensure directory exists
+            $dir = dirname($storingPath);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
 
-        // Remove Public from link
+            // Process image: Convert to WebP, 80% quality
+            Image::make($file->getRealPath())
+                ->encode('webp', 80)
+                ->save($storingPath);
+        } else {
+            $file_name .= "." . $extension;
+            $file->storeAs($path, $file_name);
+        }
+
+        // Remove Public from link for DB storage (sync with existing logic)
         return substr($path . "/" . $file_name, 8);
     }
 }

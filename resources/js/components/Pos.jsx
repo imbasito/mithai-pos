@@ -229,7 +229,6 @@ export default function Pos() {
         const product = products.find(p => p.id === id);
         if(!product) return;
 
-        // Optimistic Update
         const existingItemIndex = carts.findIndex(c => c.product_id === id);
         const prevCarts = [...carts];
         const prevTotal = total;
@@ -239,7 +238,6 @@ export default function Pos() {
         if(existingItemIndex >= 0) {
             // Increment existing
             const item = { ...newCarts[existingItemIndex] };
-            // Check stock locally first
             if(item.quantity >= product.quantity) {
                 playSound(WarningSound);
                 toast.error("Stock limit reached");
@@ -248,49 +246,47 @@ export default function Pos() {
             item.quantity = parseFloat(item.quantity) + 1;
             item.row_total = (item.quantity * item.product.discounted_price).toFixed(2);
             newCarts[existingItemIndex] = item;
+            updateCartOptimistically(newCarts);
+            playSound(SuccessSound);
         } else {
-            // Add new (Mock the structure)
-            // We might miss 'id' (cart id) until server responds, but for display valid product_id is enough?
-            // Cart.jsx keys by 'item.id'. We need a temporary ID or rely on index.
-            // Best to rely on server for the first add to get the ID, OR use a temp ID.
-            // Using temp ID might break 'increment' calls if they need real ID.
-            // For 'New' items, we might HAVE to wait for server or use specific logic.
-            // Let's stick to "wait for first add", but "optimistic increment" for existing.
-            // Actually, for "Add", if it's new, the delay isn't as bad as "Scanning same item 10 times".
-            // So if new, call API. If existing, update locally.
+            // Add new with temporary ID
+            const tempId = `temp-${Date.now()}`;
+            const newItem = {
+                id: tempId,
+                product_id: product.id,
+                quantity: 1,
+                row_total: product.discounted_price,
+                product: product
+            };
+            newCarts = [newItem, ...carts];
+            updateCartOptimistically(newCarts);
+            playSound(SuccessSound);
             
+            // Sync with server and replace tempId
             axios.post("/admin/cart", { id })
-            .then((res) => {
-                setCartUpdated(prev => !prev);
-                playSound(SuccessSound);
-                toast.success("Added to cart");
-            })
-            .catch((err) => {
-                playSound(WarningSound);
-                toast.error(err.response?.data?.message || "Error adding item");
-            });
-            return; 
+                .then((res) => {
+                    const realItem = res.data.cart; // Assuming backend returns the new cart item
+                    if (realItem) {
+                        setCarts(currentCarts => 
+                            currentCarts.map(item => item.id === tempId ? realItem : item)
+                        );
+                    } else {
+                        setCartUpdated(prev => !prev);
+                    }
+                    toast.success("Added to cart");
+                })
+                .catch((err) => {
+                    setCarts(prevCarts);
+                    setTotal(prevTotal);
+                    playSound(WarningSound);
+                    toast.error(err.response?.data?.message || "Error adding item");
+                });
+            return;
         }
 
-        updateCartOptimistically(newCarts);
-        playSound(SuccessSound);
-
-        // Server Sync
+        // Server Sync for existing item
         axios.post("/admin/cart", { id })
-            .then(() => {
-                // Success - no UI change needed usually, 
-                // but maybe sync ID? For now, we rely on background refresh or eventual consistency.
-                // To be safe, trigger a silent refresh in background after debounce?
-                // Or just assume success. 
-                // Better: setCartUpdated(!cartUpdated) might overwrite our optimistic state with old state if race condition?
-                // We should NOT trigger full reload if we are confident.
-                // But we need the real DB IDs for future actions.
-                // Compromise: Update locally, then do a silent fetch to get IDs?
-                // Actually, if we just incremented, we already have the ID (existingItemIndex).
-                // So no refresh needed for existing items!
-            })
             .catch((err) => {
-                // Revert
                 setCarts(prevCarts);
                 setTotal(prevTotal);
                 playSound(WarningSound);

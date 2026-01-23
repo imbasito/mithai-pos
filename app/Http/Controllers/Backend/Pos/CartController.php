@@ -105,7 +105,8 @@ class CartController extends Controller
             if ($cartItem->quantity < $product->quantity) {
                 $cartItem->quantity += 1;
                 $cartItem->save();
-                return response()->json(['message' => 'Quantity updated', 'quantity' => $cartItem->quantity], 200);
+                $cartItem->load('product');
+                return response()->json(['message' => 'Quantity updated', 'cart' => $cartItem], 200);
             } else {
                 return response()->json(['message' => 'Cannot add more, stock limit reached'], 400);
             }
@@ -116,7 +117,8 @@ class CartController extends Controller
             $cart->product_id = $product_id;
             $cart->quantity = 1;
             $cart->save();
-            return response()->json(['message' => 'Product added to cart', 'quantity' => 1], 201);
+            $cart->load('product');
+            return response()->json(['message' => 'Product added to cart', 'cart' => $cart], 201);
         }
     }
 

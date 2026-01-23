@@ -10,6 +10,10 @@
 
     <!-- FAVICON ICON -->
     <link rel="shortcut icon" href="{{ assetImage(readconfig('favicon_icon')) }}" type="image/svg+xml">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#800000">
 
     <!-- FAVICON ICON APPLE -->
     <link href="{{ assetImage(readconfig('favicon_icon_apple')) }}" rel="apple-touch-icon">
@@ -460,6 +464,13 @@
     </script>
 
     @stack('script')
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
 </body>
 
 </html>
