@@ -153,25 +153,29 @@
         @endphp
         @foreach ($return->order->products as $item)
         @php
-            $isInThisReturn = in_array($item->id, $thisReturnItemIds);
-            $hasAnyReturn = isset($allReturnedQuantities[$item->id]) && $allReturnedQuantities[$item->id] > 0;
+            $thisReturnQty = \App\Models\ReturnItem::where('return_id', $return->id)->where('order_product_id', $item->id)->sum('quantity');
+            $totalReturnedQty = isset($allReturnedQuantities[$item->id]) ? $allReturnedQuantities[$item->id] : 0;
             $unitPrice = $item->quantity > 0 ? ($item->total / $item->quantity) : 0;
             
-            // Strike through if it's in the current return OR if it was fully returned before
-            $shouldStrike = $isInThisReturn || (isset($allReturnedQuantities[$item->id]) && $allReturnedQuantities[$item->id] >= $item->quantity);
+            // FULL STRIKE: Only if the entire sold quantity is now returned
+            $isFullyReturned = ($totalReturnedQty >= $item->quantity);
+            // HIGHLIGHT: If this specific item is part of the CURRENT return
+            $isBeingReturnedNow = ($thisReturnQty > 0);
         @endphp
-        <tr style="{{ $shouldStrike ? 'text-decoration: line-through; color: #888;' : '' }}">
+        <tr style="{{ $isFullyReturned ? 'text-decoration: line-through; color: #888;' : '' }}">
           <td>
-            <div style="line-height: 1.1;">
+            <div style="line-height: 1.1; {{ $isBeingReturnedNow && !$isFullyReturned ? 'font-weight: bold; color: #d9534f;' : '' }}">
                 {{ optional($item->product)->name ?? 'Item' }}
-                @if($isInThisReturn && !$shouldStrike) 
-                    <small>(Partial Return)</small>
+                @if($isBeingReturnedNow && !$isFullyReturned) 
+                    <div style="font-size: 9px; font-weight: normal; color: #888; text-decoration: none !important; display: block;">(-{{ number_format($thisReturnQty, 0) }} Returned Now)</div>
+                @elseif($isFullyReturned)
+                    <div style="font-size: 9px; font-weight: normal; color: #888; text-decoration: none !important; display: block;">(Fully Returned)</div>
                 @endif
             </div>
           </td>
           <td class="text-center">x{{ number_format($item->quantity, 0) }}</td>
           <td class="text-right">{{ number_format($unitPrice, 0) }}</td>
-          <td class="text-right {{ !$shouldStrike ? 'font-bold' : '' }}">{{ number_format($item->total, 2) }}</td>
+          <td class="text-right {{ !$isFullyReturned ? 'font-bold' : '' }}">{{ number_format($item->total, 2) }}</td>
         </tr>
         @endforeach
       </tbody>

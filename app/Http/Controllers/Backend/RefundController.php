@@ -132,8 +132,19 @@ class RefundController extends Controller
             // Update return total
             $return->update(['total_refund' => $totalRefund]);
 
-            // Mark order as returned if full refund
-            if ($totalRefund >= $order->total) {
+            // Create a negative transaction recorded against the order
+            OrderTransaction::create([
+                'order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'user_id' => auth()->id(),
+                'amount' => -$totalRefund,
+                'paid_by' => 'cash', // Refunds are usually cash-out
+                'transaction_id' => 'REFUND-' . $return->return_number
+            ]);
+
+            // Mark order as returned if cumulative returns cover the full order total
+            $cumulativeRefund = ProductReturn::where('order_id', $order->id)->sum('total_refund');
+            if ($cumulativeRefund >= $order->total) {
                 $order->update(['is_returned' => true]);
             }
 
