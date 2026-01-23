@@ -81,34 +81,44 @@ export default function Pos() {
         [protocol, hostname, port]
     );
 
-    // Recalculate Final Total & Rounding
-    useEffect(() => {
+    // Helper: Centralized calculation to prevent logic drift
+    const calculateOrderValues = useCallback(() => {
         const subTotal = parseFloat(total) || 0;
         const manDisc = parseFloat(manualDiscount) || 0;
         
-        let subTotalAfterManual = Math.max(0, subTotal - manDisc);
+        // 1. Apply Manual Discount
+        // Ensure we don't go below 0
+        const subTotalAfterManual = Math.max(0, subTotal - manDisc);
+        
+        // 2. Calculate Rounding
         let roundDisc = 0;
-
         if (autoRound && subTotalAfterManual > 0) {
-           // Round down to nearest integer (Math.floor)
-           // Example: 100.75 -> 100.00 (Discount 0.75)
-           const floorTotal = Math.floor(subTotalAfterManual);
-           const rawDiff = subTotalAfterManual - floorTotal;
-           
-           // Fix float precision issues (e.g. 0.750000001 -> 0.75)
-           if(rawDiff > 0) {
-               roundDisc = parseFloat(rawDiff.toFixed(2));
-           }
+            const floorTotal = Math.floor(subTotalAfterManual);
+            const rawDiff = subTotalAfterManual - floorTotal;
+            if (rawDiff > 0) {
+                roundDisc = parseFloat(rawDiff.toFixed(2));
+            }
         }
-        
-        // Final Payable
-        let pay = subTotalAfterManual - roundDisc;
-        
-        // Safety check
-        if(pay < 0) pay = 0;
-        
-        setUpdateTotal(pay.toFixed(2));
+
+        // 3. Final Values
+        const finalTotal = parseFloat((subTotalAfterManual - roundDisc).toFixed(2));
+        const finalDiscount = parseFloat((manDisc + roundDisc).toFixed(2));
+
+        return {
+            subTotal,
+            manualDiscount: manDisc,
+            subTotalAfterManual,
+            roundingDiscount: roundDisc,
+            finalTotal,
+            finalDiscount
+        };
     }, [total, manualDiscount, autoRound]);
+
+    // Recalculate Final Total & Rounding using helper
+    useEffect(() => {
+        const { finalTotal } = calculateOrderValues();
+        setUpdateTotal(finalTotal.toFixed(2));
+    }, [calculateOrderValues]);
 
     // Fetch Products
     const getProducts = useCallback(async (search = "", page = 1) => {
@@ -195,11 +205,60 @@ export default function Pos() {
     }, [currentPage]);
 
 
-    // Actions
-    function addProductToCart(id) {
-        axios.post("/admin/cart", { id })
+    // Optimized Cart Actions
+    
+    // Helper to calculate total from carts array
+    const calculateCartTotal = (cartItems) => {
+        return cartItems.reduce((sum, item) => {
+            const price = parseFloat(item.product.discounted_price) || 0;
+            const qty = parseFloat(item.quantity) || 0;
+            return sum + (price * qty);
+        }, 0);
+    };
+
+    const updateCartOptimistically = (newCarts) => {
+        setCarts(newCarts);
+        setTotal(calculateCartTotal(newCarts));
+    };
+
+    // 1. Add Product (Optimistic)
+    const addProductToCart = useCallback((id) => {
+        const product = products.find(p => p.id === id);
+        if(!product) return;
+
+        // Optimistic Update
+        const existingItemIndex = carts.findIndex(c => c.product_id === id);
+        const prevCarts = [...carts];
+        const prevTotal = total;
+
+        let newCarts = [...carts];
+
+        if(existingItemIndex >= 0) {
+            // Increment existing
+            const item = { ...newCarts[existingItemIndex] };
+            // Check stock locally first
+            if(item.quantity >= product.quantity) {
+                playSound(WarningSound);
+                toast.error("Stock limit reached");
+                return;
+            }
+            item.quantity = parseFloat(item.quantity) + 1;
+            item.row_total = (item.quantity * item.product.discounted_price).toFixed(2);
+            newCarts[existingItemIndex] = item;
+        } else {
+            // Add new (Mock the structure)
+            // We might miss 'id' (cart id) until server responds, but for display valid product_id is enough?
+            // Cart.jsx keys by 'item.id'. We need a temporary ID or rely on index.
+            // Best to rely on server for the first add to get the ID, OR use a temp ID.
+            // Using temp ID might break 'increment' calls if they need real ID.
+            // For 'New' items, we might HAVE to wait for server or use specific logic.
+            // Let's stick to "wait for first add", but "optimistic increment" for existing.
+            // Actually, for "Add", if it's new, the delay isn't as bad as "Scanning same item 10 times".
+            // So if new, call API. If existing, update locally.
+            
+            axios.post("/admin/cart", { id })
             .then((res) => {
-                setCartUpdated(!cartUpdated);
+                setCartUpdated(prev => !prev);
                 playSound(SuccessSound);
                 toast.success("Added to cart");
             })
@@ -207,7 +266,154 @@ export default function Pos() {
                 playSound(WarningSound);
                 toast.error(err.response?.data?.message || "Error adding item");
             });
-    }
+            return; 
+        }
+
+        updateCartOptimistically(newCarts);
+        playSound(SuccessSound);
+
+        // Server Sync
+        axios.post("/admin/cart", { id })
+            .then(() => {
+                // Success - no UI change needed usually, 
+                // but maybe sync ID? For now, we rely on background refresh or eventual consistency.
+                // To be safe, trigger a silent refresh in background after debounce?
+                // Or just assume success. 
+                // Better: setCartUpdated(!cartUpdated) might overwrite our optimistic state with old state if race condition?
+                // We should NOT trigger full reload if we are confident.
+                // But we need the real DB IDs for future actions.
+                // Compromise: Update locally, then do a silent fetch to get IDs?
+                // Actually, if we just incremented, we already have the ID (existingItemIndex).
+                // So no refresh needed for existing items!
+            })
+            .catch((err) => {
+                // Revert
+                setCarts(prevCarts);
+                setTotal(prevTotal);
+                playSound(WarningSound);
+                toast.error(err.response?.data?.message || "Sync Error");
+            });
+
+    }, [carts, products, total]);
+
+    // 2. Increment (Optimistic)
+    const handleIncrement = (cartId) => {
+        const index = carts.findIndex(c => c.id === cartId);
+        if(index < 0) return;
+
+        const item = { ...carts[index] };
+        if(item.product.quantity > 0 && item.quantity >= item.product.quantity) {
+             toast.error("Stock limit reached");
+             return;
+        }
+
+        const prevCarts = [...carts];
+        const prevTotal = total;
+
+        const newCarts = [...carts];
+        item.quantity = parseFloat(item.quantity) + 1;
+        item.row_total = (item.quantity * item.product.discounted_price).toFixed(2);
+        newCarts[index] = item;
+        
+        updateCartOptimistically(newCarts);
+
+        axios.put("/admin/cart/increment", { id: cartId }).catch(err => {
+            setCarts(prevCarts);
+            setTotal(prevTotal);
+            toast.error("Sync failed");
+        });
+    };
+
+    // 3. Decrement (Optimistic)
+    const handleDecrement = (cartId) => {
+        const index = carts.findIndex(c => c.id === cartId);
+        if(index < 0) return;
+
+        const item = { ...carts[index] };
+        if(item.quantity <= 1) return; // Use delete for 0
+
+        const prevCarts = [...carts];
+        const prevTotal = total;
+
+        const newCarts = [...carts];
+        item.quantity = parseFloat(item.quantity) - 1;
+        item.row_total = (item.quantity * item.product.discounted_price).toFixed(2);
+        newCarts[index] = item;
+        
+        updateCartOptimistically(newCarts);
+
+        axios.put("/admin/cart/decrement", { id: cartId }).catch(err => {
+             setCarts(prevCarts);
+             setTotal(prevTotal);
+             toast.error("Sync failed");
+        });
+    };
+
+    // 4. Remove (Optimistic)
+    const handleRemove = (cartId) => {
+         const prevCarts = [...carts];
+         const prevTotal = total;
+         
+         const newCarts = carts.filter(c => c.id !== cartId);
+         updateCartOptimistically(newCarts);
+         playSound(WarningSound); // Delete sound
+
+         axios.put("/admin/cart/delete", { id: cartId }).catch(err => {
+             setCarts(prevCarts);
+             setTotal(prevTotal);
+             toast.error("Delete failed");
+         });
+    };
+    
+    // 5. Update Quantity (Direct)
+    const handleUpdateQuantity = (cartId, qty) => {
+        const index = carts.findIndex(c => c.id === cartId);
+        if(index < 0) return;
+        
+        const prevCarts = [...carts];
+        const prevTotal = total;
+        
+        const newCarts = [...carts];
+        const item = { ...newCarts[index] };
+        item.quantity = parseFloat(qty);
+        item.row_total = (item.quantity * item.product.discounted_price).toFixed(2);
+        newCarts[index] = item;
+        
+        updateCartOptimistically(newCarts);
+        
+        axios.put("/admin/cart/update-quantity", { id: cartId, quantity: qty }).catch(err => {
+            setCarts(prevCarts);
+            setTotal(prevTotal);
+            toast.error(err.response?.data?.message || "Update failed");
+        });
+    };
+
+    // 6. Update By Price (Optimistic)
+    const handleUpdateByPrice = (cartId, targetPrice) => {
+        const index = carts.findIndex(c => c.id === cartId);
+        if(index < 0) return;
+        
+        const prevCarts = [...carts];
+        const prevTotal = total;
+        
+        const newCarts = [...carts];
+        const item = { ...newCarts[index] };
+        const unitPrice = parseFloat(item.product.discounted_price) || 0;
+        
+        if(unitPrice <= 0) return;
+        
+        item.row_total = parseFloat(targetPrice).toFixed(2);
+        item.quantity = (parseFloat(targetPrice) / unitPrice).toFixed(3);
+        newCarts[index] = item;
+        
+        updateCartOptimistically(newCarts);
+        
+        axios.put("/admin/cart/update-by-price", { id: cartId, price: targetPrice }).catch(err => {
+            setCarts(prevCarts);
+            setTotal(prevTotal);
+            toast.error(err.response?.data?.message || "Update failed");
+        });
+    };
 
     function cartEmpty() {
         if (total <= 0) return;
@@ -248,24 +454,8 @@ export default function Pos() {
     const handlePaymentConfirm = (paymentData) => {
         const { paid, method, trxId } = paymentData;
         
-        // Calculate Final Discount for Backend
-        const subTotal = parseFloat(total) || 0;
-        const manDisc = parseFloat(manualDiscount) || 0;
-        
-        // Calculate subtotal after manual discount first
-        let subTotalAfterManual = Math.max(0, subTotal - manDisc);
-        let roundDisc = 0;
-
-        // Re-run rounding logic (MUST match useEffect logic exactly)
-        if (autoRound === true && subTotalAfterManual > 0) {
-           const floorTotal = Math.floor(subTotalAfterManual);
-           const rawDiff = subTotalAfterManual - floorTotal;
-           if(rawDiff > 0) {
-               roundDisc = parseFloat(rawDiff.toFixed(2));
-           }
-        }
-        
-        const finalDiscount = manDisc + roundDisc;
+        // Calculate Final Discount for Backend using unified helper
+        const { finalDiscount } = calculateOrderValues();
 
         // Finalize Order
         axios.put("/admin/order/create", {
@@ -391,7 +581,12 @@ export default function Pos() {
                         <Cart 
                             carts={carts} 
                             setCartUpdated={setCartUpdated} 
-                            cartUpdated={cartUpdated} 
+                            cartUpdated={cartUpdated}
+                            onIncrement={handleIncrement}
+                            onDecrement={handleDecrement}
+                            onDelete={handleRemove}
+                            onUpdateQty={handleUpdateQuantity}
+                            onUpdatePrice={handleUpdateByPrice}
                         />
                     </div>
                 </div>
@@ -434,22 +629,24 @@ export default function Pos() {
                         {/* Auto-Round Toggle Area */}
                         <div 
                             className="d-flex flex-column align-items-center justify-content-center px-3 cursor-pointer hover-bg-light" 
-                            style={{ height: '100%', minWidth: '100px', backgroundColor: autoRound ? '#fff5f5' : 'transparent' }}
-                            onClick={() => setAutoRound(!autoRound)}
+                            style={{ height: '100%', minWidth: '100px', backgroundColor: autoRound ? '#fff5f5' : 'transparent', userSelect: 'none' }}
+                            onClick={(e) => {
+                                // Prevent default if coming from label to avoid double toggle
+                                e.preventDefault();
+                                setAutoRound(prev => !prev);
+                            }}
                         >
-                            <div className="custom-control custom-switch custom-switch-maroon mb-1">
+                            <div className="custom-control custom-switch custom-switch-maroon mb-1" style={{ pointerEvents: 'none' }}>
                                 <input 
                                     type="checkbox" 
                                     className="custom-control-input" 
-                                    id="autoFrac" 
                                     checked={autoRound} 
-                                    onChange={() => {}} 
-                                    tabIndex="-1"
+                                    readOnly
                                 />
-                                <label className="custom-control-label" htmlFor="autoFrac" style={{cursor:'pointer'}}></label>
+                                <label className="custom-control-label"></label>
                             </div>
                             <small className={`font-weight-bold ${autoRound ? 'text-maroon' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>
-                                ROUND OFF
+                                ROUND OFF {autoRound && calculateOrderValues().roundingDiscount > 0 && <span>(-{calculateOrderValues().roundingDiscount})</span>}
                             </small>
                         </div>
                      </div>

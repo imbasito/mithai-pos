@@ -6,117 +6,28 @@ import SuccessSound from "../sounds/beep-07a.mp3";
 import WarningSound from "../sounds/beep-02.mp3";
 import playSound from "../utils/playSound";
 
-export default function Cart({ carts, setCartUpdated, cartUpdated }) {
-    function increment(id) {
-        axios
-            .put("/admin/cart/increment", {
-                id: id,
-            })
-            .then((res) => {
-                setCartUpdated(!cartUpdated);
-                playSound(SuccessSound);
-                toast.success(res?.data?.message);
-            })
-            .catch((err) => {
-                playSound(WarningSound);
-                toast.error(err.response.data.message);
-            });
-    }
-    function decrement(id) {
-        axios
-            .put("/admin/cart/decrement", {
-                id: id,
-            })
-            .then((res) => {
-                setCartUpdated(!cartUpdated);
-                playSound(SuccessSound);
-                toast.success(res?.data?.message);
-            })
-            .catch((err) => {
-                playSound(WarningSound);
-                toast.error(err.response.data.message);
-            });
-    }
-
-    // Direct quantity update for weight-based selling
-    function updateQuantity(id, newQuantity) {
+export default function Cart({ carts, setCartUpdated, cartUpdated, onIncrement, onDecrement, onDelete, onUpdateQty, onUpdatePrice }) {
+    
+    // Direct quantity update wrapper
+    function handleQtyChange(id, newQuantity) {
         const qty = parseFloat(newQuantity);
         if (isNaN(qty) || qty <= 0) {
             toast.error("Enter valid quantity");
             return;
         }
-        axios
-            .put("/admin/cart/update-quantity", {
-                id: id,
-                quantity: qty,
-            })
-            .then((res) => {
-                setCartUpdated(!cartUpdated);
-                playSound(SuccessSound);
-                toast.success(res?.data?.message);
-            })
-            .catch((err) => {
-                playSound(WarningSound);
-                toast.error(err.response?.data?.message || "Update failed");
-            });
+        onUpdateQty(id, qty);
     }
 
-    // Update by price - customer says "100 rupees ka dedo"
-    // System auto-calculates: 100 ÷ 1400 = 0.071 kg
-    function updateByPrice(id, desiredPrice) {
-        const price = parseFloat(desiredPrice);
+    // Update by price wrapper for optimistic sync
+    function handlePriceChange(id, targetPrice) {
+        const price = parseFloat(targetPrice);
         if (isNaN(price) || price <= 0) {
             toast.error("Enter valid amount");
             return;
         }
-        axios
-            .put("/admin/cart/update-by-price", {
-                id: id,
-                price: price,
-            })
-            .then((res) => {
-                setCartUpdated(!cartUpdated);
-                playSound(SuccessSound);
-                toast.success(res?.data?.message);
-            })
-            .catch((err) => {
-                playSound(WarningSound);
-                toast.error(err.response?.data?.message || "Update failed");
-            });
+        onUpdatePrice(id, price);
     }
 
-    function destroy(id) {
-        Swal.fire({
-            title: "Are you sure you want to delete this item?",
-            showDenyButton: true,
-            confirmButtonText: "Yes",
-            denyButtonText: "No",
-            customClass: {
-                actions: "my-actions",
-                cancelButton: "order-1 right-gap",
-                confirmButton: "order-2",
-                denyButton: "order-3",
-            },
-        }).then((result) => {
-            if (result.isConfirmed) {
-                axios
-                    .put("/admin/cart/delete", {
-                        id: id,
-                    })
-                    .then((res) => {
-                        console.log(res);
-                        setCartUpdated(!cartUpdated);
-                        playSound(SuccessSound);
-                        toast.success(res?.data?.message);
-                    })
-                    .catch((err) => {
-                        toast.error(err.response.data.message);
-                    });
-            } else if (result.isDenied) {
-                return;
-            }
-        });
-    }
     return (
         <>
             <div className="user-cart">
@@ -141,7 +52,7 @@ export default function Cart({ carts, setCartUpdated, cartUpdated }) {
                                                 <button
                                                     className="btn btn-warning btn-sm"
                                                     onClick={() =>
-                                                        decrement(item.id)
+                                                        onDecrement(item.id)
                                                     }
                                                 >
                                                     <i className="fas fa-minus"></i>
@@ -156,7 +67,7 @@ export default function Cart({ carts, setCartUpdated, cartUpdated }) {
                                                     style={{ width: '80px' }}
                                                     onBlur={(e) => {
                                                         if (e.target.value !== String(item.quantity)) {
-                                                            updateQuantity(item.id, e.target.value);
+                                                            handleQtyChange(item.id, e.target.value);
                                                         }
                                                     }}
                                                     onKeyDown={(e) => {
@@ -168,7 +79,7 @@ export default function Cart({ carts, setCartUpdated, cartUpdated }) {
                                                 <button
                                                     className="btn btn-success btn-sm"
                                                     onClick={() =>
-                                                        increment(item.id)
+                                                        onIncrement(item.id)
                                                     }
                                                 >
                                                     <i className="fas fa-plus "></i>
@@ -177,41 +88,34 @@ export default function Cart({ carts, setCartUpdated, cartUpdated }) {
                                             <td>
                                                 <button
                                                     className="btn btn-danger btn-sm mr-3"
-                                                    onClick={() =>
-                                                        destroy(item.id)
-                                                    }
+                                                    onClick={() => onDelete(item.id)}
+                                                    title="Remove Item"
                                                 >
                                                     <i className="fas fa-trash "></i>
                                                 </button>
                                             </td>
                                             <td className="text-right">
-                                                {item?.product?.discounted_price}
-                                                {item?.product?.price >
-                                                    item?.product
-                                                        ?.discounted_price ? (
+                                                {parseFloat(item.product.discounted_price).toFixed(2)}
+                                                {item.product.price > item.product.discounted_price && (
                                                     <>
                                                         <br />
-                                                        <del>
-                                                            {item?.product?.price}
-                                                        </del>
+                                                        <del>{parseFloat(item.product.price).toFixed(2)}</del>
                                                     </>
-                                                ) : (
-                                                    ""
                                                 )}
                                             </td>
                                             <td className="text-right">
                                                 <input
                                                     key={`total-${item.id}-${item.row_total}`}
                                                     type="number"
-                                                    className="form-control form-control-sm text-right"
-                                                    defaultValue={item.row_total}
-                                                    step="1"
-                                                    min="1"
+                                                    className="form-control form-control-sm text-right no-spinner"
+                                                    defaultValue={parseFloat(item.row_total).toFixed(2)}
+                                                    step="any"
+                                                    min="0"
                                                     style={{ width: '90px', display: 'inline-block' }}
                                                     title="Enter Rs. amount"
                                                     onBlur={(e) => {
                                                         if (e.target.value !== String(item.row_total)) {
-                                                            updateByPrice(item.id, e.target.value);
+                                                            handlePriceChange(item.id, e.target.value);
                                                         }
                                                     }}
                                                     onKeyDown={(e) => {
