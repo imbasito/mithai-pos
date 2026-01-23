@@ -18,7 +18,8 @@
                     <tr>
                         <th style="width: 30px;"><input type="checkbox" id="select-all"></th>
                         <th>Product</th>
-                        <th style="width: 100px;">Purchased</th>
+                        <th style="width: 80px;">Sold</th>
+                        <th style="width: 80px;">Ret.</th>
                         <th style="width: 120px;">Return Qty</th>
                         <th style="width: 100px;">Unit Price</th>
                         <th style="width: 100px;">Refund</th>
@@ -26,22 +27,25 @@
                 </thead>
                 <tbody>
                     @foreach($order->products as $item)
-                    <tr data-item-id="{{ $item->id }}">
+                    <tr data-item-id="{{ $item->id }}" class="{{ $item->available_qty <= 0 ? 'bg-light text-muted' : '' }}">
                         <td>
                             <input type="checkbox" class="item-checkbox" 
                                    data-order-product-id="{{ $item->id }}"
-                                   data-max-qty="{{ $item->quantity }}"
-                                   data-unit-price="{{ $item->total / $item->quantity }}">
+                                   data-max-qty="{{ $item->available_qty }}"
+                                   data-unit-price="{{ $item->total / $item->quantity }}"
+                                   {{ $item->available_qty <= 0 ? 'disabled' : '' }}>
                         </td>
                         <td>
                             <strong>{{ $item->product->name ?? 'Deleted Product' }}</strong>
                             <br><small class="text-muted">SKU: {{ $item->product->sku ?? 'N/A' }}</small>
                         </td>
-                        <td class="text-center">{{ $item->quantity }}</td>
+                        <td class="text-center">{{ number_format($item->quantity, 0) }}</td>
+                        <td class="text-center text-danger">{{ number_format($item->returned_qty, 0) }}</td>
                         <td>
                             <input type="number" class="form-control form-control-sm return-qty"
-                                   min="0" max="{{ $item->quantity }}" step="0.001" value="0"
-                                   disabled data-order-product-id="{{ $item->id }}">
+                                   min="0" max="{{ $item->available_qty }}" step="0.001" value="0"
+                                   disabled data-order-product-id="{{ $item->id }}"
+                                   style="text-align: center;">
                         </td>
                         <td class="text-right">{{ number_format($item->total / $item->quantity, 2) }}</td>
                         <td class="text-right refund-amount">0.00</td>

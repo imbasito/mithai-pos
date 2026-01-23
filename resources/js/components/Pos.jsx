@@ -4,6 +4,8 @@ import Swal from "sweetalert2";
 import Cart from "./Cart";
 import toast, { Toaster } from "react-hot-toast";
 import CustomerSelect from "./CutomerSelect";
+import PaymentModal from "./PaymentModal";
+import ReceiptModal from "./ReceiptModal";
 import debounce from "lodash/debounce";
 import throttle from "lodash/throttle";
 
@@ -11,33 +13,36 @@ import SuccessSound from "../sounds/beep-07a.mp3";
 import WarningSound from "../sounds/beep-02.mp3";
 import playSound from "../utils/playSound";
 
-// Memoized ProductCard component - only re-renders when props change
+// Memoized ProductCard component
 const ProductCard = memo(({ product, onClick, baseUrl }) => (
     <div
         onClick={() => onClick(product.id)}
-        className="col-6 col-md-4 col-lg-3 mb-3"
+        className="col-6 col-md-4 col-lg-3 mb-3 px-2"
         style={{ cursor: "pointer" }}
     >
-        <div className="text-center product-card">
-            <img
-                src={`${baseUrl}/storage/${product.image}`}
-                alt={product.name}
-                className="mr-2 img-thumb"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = `${baseUrl}/assets/images/no-image.png`;
-                }}
-                width={100}
-                height={80}
-                style={{ objectFit: 'cover' }}
-            />
-            <div className="product-details">
-                <p className="mb-0 text-bold product-name">
-                    {product.name} ({product.quantity})
-                </p>
-                <p>Price: {product?.discounted_price}</p>
+        <div className="card h-100 pos-product-card">
+            <div className="pos-product-img-wrapper">
+                <img
+                    src={`${baseUrl}/storage/${product.image}`}
+                    alt={product.name}
+                    className="pos-product-img"
+                    loading="lazy"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = `${baseUrl}/assets/images/no-image.png`;
+                    }}
+                />
+            </div>
+            <div className="card-body p-2 text-center d-flex flex-column justify-content-between">
+                <div>
+                    <h6 className="text-secondary text-sm font-weight-bold mb-1 text-truncate" title={product.name}>
+                        {product.name}
+                    </h6>
+                    <span className="badge badge-light border">Qty: {product.quantity}</span>
+                </div>
+                <div className="mt-2 text-dark font-weight-bolder">
+                    Rs. {parseFloat(product?.discounted_price || 0).toFixed(2)}
+                </div>
             </div>
         </div>
     </div>
@@ -47,29 +52,38 @@ export default function Pos() {
     const [products, setProducts] = useState([]);
     const [carts, setCarts] = useState([]);
     const [orderDiscount, setOrderDiscount] = useState(0);
-    const [paid, setPaid] = useState(0);
-    const [due, setDue] = useState(0);
-    const [total, setTotal] = useState(0);
-    const [updateTotal, setUpdateTotal] = useState(0);
     const [customerId, setCustomerId] = useState();
-    const [cartUpdated, setCartUpdated] = useState(false);
-    const [productUpdated, setProductUpdated] = useState(false);
+    
+    // Totals
+    const [total, setTotal] = useState(0); // Cart Subtotal
+    const [updateTotal, setUpdateTotal] = useState(0); // Final Total after discount
+    
+    // UI State
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchBarcode, setSearchBarcode] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [debouncedBarcode, setDebouncedBarcode] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("cash");
-    const [transactionId, setTransactionId] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [cartUpdated, setCartUpdated] = useState(false);
+    
+    // Modals
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showReceiptModal, setShowReceiptModal] = useState(false);
+    const [receiptUrl, setReceiptUrl] = useState('');
+
     const { protocol, hostname, port } = window.location;
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [loading, setLoading] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-    // Read auto fractional discount setting from backend
+    // Read settings
     const autoFractionalDiscount = window.posSettings?.autoFractionalDiscount || false;
 
-    // Auto-apply fractional discount when total changes (if setting enabled)
+    // Derived values
+    const fullDomainWithPort = useMemo(() =>
+        `${protocol}//${hostname}${port ? `:${port}` : ""}`,
+        [protocol, hostname, port]
+    );
+
+    // Auto-apply fractional discount
     useEffect(() => {
         if (autoFractionalDiscount && total > 0) {
             const fractionalPart = total % 1;
@@ -79,107 +93,34 @@ export default function Pos() {
         }
     }, [total, autoFractionalDiscount]);
 
-    // Memory cache for products - persists across re-renders
-    const productCache = useRef(new Map());
-    const lastFetchTime = useRef(0);
-    const CACHE_DURATION = 60000; // 1 minute cache
-
-    const fullDomainWithPort = useMemo(() =>
-        `${protocol}//${hostname}${port ? `:${port}` : ""}`,
-        [protocol, hostname, port]
-    );
-    const getProducts = useCallback(
-        async (search = "", page = 1, barcode = "") => {
-            const cacheKey = `${search}-${page}-${barcode}`;
-            const now = Date.now();
-
-            // Check cache first (only for non-search queries)
-            if (!search && !barcode && productCache.current.has(cacheKey)) {
-                const cached = productCache.current.get(cacheKey);
-                if (now - cached.timestamp < CACHE_DURATION) {
-                    setProducts((prev) => [...prev, ...cached.data]);
-                    setTotalPages(cached.totalPages);
-                    return;
-                }
-            }
-
-            setLoading(true);
-            try {
-                const res = await axios.get('/admin/get/products', {
-                    params: { search, page, barcode },
-                });
-                const productsData = res.data;
-
-                // Cache the result
-                productCache.current.set(cacheKey, {
-                    data: productsData.data,
-                    totalPages: productsData.meta.last_page,
-                    timestamp: now
-                });
-
-                setProducts((prev) => [...prev, ...productsData.data]);
-                if (productsData.data.length === 1 && barcode != "") {
-                    addProductToCart(productsData.data[0].id);
-                    getCarts();
-                }
-                setTotalPages(productsData.meta.last_page);
-            } catch (error) {
-                console.error("Error fetching products:", error);
-            } finally {
-                setLoading(false);
-            }
-        },
-        []
-    );
-    // Debounce search input - waits 300ms after user stops typing
+    // Recalculate Final Total
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearch(searchQuery);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+        let disc = parseFloat(orderDiscount) || 0;
+        const subTotal = parseFloat(total) || 0;
+        setUpdateTotal((subTotal - disc).toFixed(2));
+    }, [total, orderDiscount]);
 
-    // Debounce barcode input - waits 300ms after user stops typing
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedBarcode(searchBarcode);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchBarcode]);
-
-    // Keyboard shortcuts for faster POS operation
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            // Ctrl+Enter or Cmd+Enter = Quick Checkout
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                if (total > 0 && customerId) {
-                    // Trigger checkout button click
-                    document.querySelector('[data-checkout-btn]')?.click();
-                }
-            }
-            // Ctrl+Delete or Ctrl+Backspace = Clear cart (with confirmation)
-            // Changed from Escape to avoid conflict with fullscreen exit
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
-                e.preventDefault();
-                if (total > 0) {
-                    // Trigger clear cart button click
-                    document.querySelector('[data-clear-cart-btn]')?.click();
-                }
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [total, customerId]);
-
-    // Refresh products after order completion
-    const refreshProducts = useCallback(async () => {
+    // Fetch Products
+    const getProducts = useCallback(async (search = "", page = 1) => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const res = await axios.get('/admin/get/products');
+            const isBarcode = /^\d{3,}/.test(search); 
+            const params = { page };
+            if (isBarcode) params.barcode = search;
+            else params.search = search;
+
+            const res = await axios.get('/admin/get/products', { params });
             const productsData = res.data;
-            setProducts(productsData.data);
+
+            if (page === 1) {
+                setProducts(productsData.data);
+                if (productsData.data.length === 1 && isBarcode) {
+                   addProductToCart(productsData.data[0].id);
+                   setSearchQuery(''); 
+                }
+            } else {
+                setProducts(prev => [...prev, ...productsData.data]);
+            }
             setTotalPages(productsData.meta.last_page);
         } catch (error) {
             console.error("Error fetching products:", error);
@@ -188,483 +129,340 @@ export default function Pos() {
         }
     }, []);
 
-    // Initial product load - runs only once on mount
+    // Initial Load
     useEffect(() => {
-        if (!initialLoadDone) {
-            refreshProducts();
-            setInitialLoadDone(true);
-        }
-    }, [initialLoadDone, refreshProducts]);
+         getProducts();
+         setInitialLoadDone(true);
+    }, []);
 
-    // Refresh products when order is completed
-    useEffect(() => {
-        if (productUpdated && initialLoadDone) {
-            refreshProducts();
-        }
-    }, [productUpdated]);
-
+    // Fetch Cart
     const getCarts = async () => {
         try {
             const res = await axios.get('/admin/cart');
-            const data = res.data;
-            setTotal(data?.total);
-            setUpdateTotal(data?.total - orderDiscount);
-            setCarts(data?.carts);
+            setTotal(res.data?.total);
+            setCarts(res.data?.carts);
         } catch (error) {
-            console.error("Error fetching carts:", error);
+            console.error("Cart error", error);
         }
     };
+    useEffect(() => { getCarts(); }, [cartUpdated]);
+
+    // Search Debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     useEffect(() => {
-        getCarts();
-    }, []);
-
-    useEffect(() => {
-        getCarts();
-    }, [cartUpdated]);
-
-    useEffect(() => {
-        let paid1 = paid;
-        let disc = orderDiscount;
-        if (paid == "") {
-            paid1 = 0;
-        }
-        if (orderDiscount == "") {
-            disc = 0;
-        }
-        const updatedTotalAmount = parseFloat(total) - parseFloat(disc);
-        const dueAmount = updatedTotalAmount - parseFloat(paid1);
-        setUpdateTotal(updatedTotalAmount?.toFixed(2));
-        setDue(dueAmount?.toFixed(2));
-    }, [orderDiscount, paid, total]);
-    // Handle debounced search - only fires after user stops typing
-    useEffect(() => {
-        if (debouncedSearch) {
-            setProducts([]);
+        if (initialLoadDone) {
             setCurrentPage(1);
-            getProducts(debouncedSearch, 1, "");
-        } else if (initialLoadDone && !debouncedBarcode) {
-            // Reset to show all products when search is cleared
-            refreshProducts();
+            getProducts(debouncedSearch, 1);
         }
     }, [debouncedSearch]);
 
-    // Handle debounced barcode search
+    // Scroll Logic for Products
     useEffect(() => {
-        if (debouncedBarcode) {
-            setProducts([]);
-            setCurrentPage(1);
-            getProducts("", 1, debouncedBarcode);
-        }
-    }, [debouncedBarcode]);
+        const productContainer = document.getElementById('product-grid-container');
+        if (!productContainer) return;
 
-    // Handle pagination (load more on scroll)
-    useEffect(() => {
-        if (currentPage > 1 && initialLoadDone) {
-            getProducts(debouncedSearch, currentPage, debouncedBarcode);
-        }
-    }, [currentPage]);
-
-    // Throttled scroll handler - fires at most once per 200ms
-    useEffect(() => {
         const handleScroll = throttle(() => {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const scrollHeight = document.documentElement.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight;
-
-            // Load more when user is 200px from bottom
-            if (scrollTop + clientHeight >= scrollHeight - 200) {
-                if (currentPage < totalPages && !loading) {
-                    setCurrentPage((prev) => prev + 1);
-                }
+            if (productContainer.scrollTop + productContainer.clientHeight >= productContainer.scrollHeight - 100) {
+                 if (currentPage < totalPages && !loading) {
+                    setCurrentPage(prev => prev + 1);
+                 }
             }
         }, 200);
 
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        return () => {
-            handleScroll.cancel();
-            window.removeEventListener("scroll", handleScroll);
-        };
+        productContainer.addEventListener('scroll', handleScroll);
+        return () => productContainer.removeEventListener('scroll', handleScroll);
     }, [currentPage, totalPages, loading]);
 
+    // Load more products
+    useEffect(() => {
+        if (currentPage > 1) getProducts(debouncedSearch, currentPage);
+    }, [currentPage]);
+
+
+    // Actions
     function addProductToCart(id) {
-        axios
-            .post("/admin/cart", { id })
+        axios.post("/admin/cart", { id })
             .then((res) => {
                 setCartUpdated(!cartUpdated);
                 playSound(SuccessSound);
-                toast.success(res?.data?.message);
+                toast.success("Added to cart");
             })
             .catch((err) => {
                 playSound(WarningSound);
-                toast.error(err.response.data.message);
+                toast.error(err.response?.data?.message || "Error adding item");
             });
     }
+
     function cartEmpty() {
-        if (total <= 0) {
-            return;
-        }
+        if (total <= 0) return;
+        
         Swal.fire({
-            title: "Are you sure you want to delete Cart?",
-            showDenyButton: true,
-            confirmButtonText: "Yes",
-            denyButtonText: "No",
-            customClass: {
-                actions: "my-actions",
-                cancelButton: "order-1 right-gap",
-                confirmButton: "order-2",
-                denyButton: "order-3",
-            },
+            title: "Clear Cart?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, Clear",
+            confirmButtonColor: "#d33",
         }).then((result) => {
             if (result.isConfirmed) {
-                axios
-                    .put("/admin/cart/empty")
-                    .then((res) => {
+                axios.put("/admin/cart/empty")
+                    .then(() => {
                         setCartUpdated(!cartUpdated);
-                        // Reset payment fields when cart is cleared
-                        setPaid(0);
                         setOrderDiscount(0);
                         playSound(SuccessSound);
-                        toast.success(res?.data?.message);
                     })
-                    .catch((err) => {
-                        playSound(WarningSound);
-                        toast.error(err.response.data.message);
-                    });
-            } else if (result.isDenied) {
-                return;
+                    .catch(() => playSound(WarningSound));
             }
         });
     }
-    function orderCreate() {
+
+    // Checkout Flow
+    const handleCheckoutClick = () => {
         if (total <= 0) {
+            toast.error("Cart is empty");
             return;
         }
         if (!customerId) {
-            toast.error("Please select customer");
+            toast.error("Please select a customer first");
             return;
         }
-        Swal.fire({
-            title: `Are you sure you want to complete this order? <br> Paid: ${paid} <br> Due: ${due}`,
-            showDenyButton: true,
-            confirmButtonText: "Yes",
-            denyButtonText: "No",
-            customClass: {
-                actions: "my-actions",
-                cancelButton: "order-1 right-gap",
-                confirmButton: "order-2",
-                denyButton: "order-3",
-            },
-        }).then((result) => {
-            if (result.isConfirmed) {
-                axios
-                    .put("/admin/order/create", {
-                        customer_id: customerId,
-                        order_discount: parseFloat(orderDiscount) || 0,
-                        paid: parseFloat(paid) || 0,
-                        payment_method: paymentMethod,
-                        transaction_id: transactionId,
-                    })
-                    .then((res) => {
-                        setCartUpdated(!cartUpdated);
-                        setProductUpdated(!productUpdated);
-                        toast.success(res?.data?.message);
-                        // window.location.href = `orders/invoice/${res?.data?.order?.id}`;
-                        // window.location.href = `orders/invoice/${res?.data?.order?.id}`;
-                        const width = 450;
-                        const height = 600;
-                        const left = (window.screen.width / 2) - (width / 2);
-                        const top = (window.screen.height / 2) - (height / 2);
-                        const url = window.location.origin + `/admin/orders/pos-invoice/${res?.data?.order?.id}`;
-                        window.open(url, 'Receipt', `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes,location=no,status=no`);
-                    })
-                    .catch((err) => {
-                        toast.error(err.response.data.message);
-                    });
-            } else if (result.isDenied) {
+        setShowPaymentModal(true);
+    };
+
+    const handlePaymentConfirm = (paymentData) => {
+        const { paid, method, trxId } = paymentData;
+        
+        // Finalize Order
+        axios.put("/admin/order/create", {
+            customer_id: customerId,
+            order_discount: parseFloat(orderDiscount) || 0,
+            paid: parseFloat(paid) || 0,
+            payment_method: method,
+            transaction_id: trxId,
+        })
+        .then((res) => {
+            setShowPaymentModal(false);
+            
+            // Allow state to clear instantly for UX
+            setCarts([]);
+            setTotal(0);
+            setUpdateTotal(0);
+            setOrderDiscount(0);
+            setCartUpdated(!cartUpdated);
+
+            // Show Receipt
+            const orderId = res.data?.order?.id;
+            if (orderId) {
+                const url = window.location.origin + `/admin/orders/pos-invoice/${orderId}`;
+                setReceiptUrl(url);
+                setShowReceiptModal(true);
+            }
+            
+            // Refresh Products (stock update)
+            getProducts(debouncedSearch, currentPage);
+            toast.success("Order Created Successfully!");
+        })
+        .catch((err) => {
+            toast.error(err.response?.data?.message || "Order Failed");
+        });
+    };
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+            
+            // F4 for Pay (Exclusive shortcut as requested)
+            if (e.key === 'F4') {
+                e.preventDefault();
+                handleCheckoutClick();
                 return;
             }
-        });
-    }
 
+            // Removed Enter key for checkout to avoid barcode scanner conflicts
+            // Barcode scanners often send 'Enter' after scanning, which was causing premature checkout.
+
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
+                e.preventDefault();
+                cartEmpty();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [total, customerId, showPaymentModal]);
+
+    // Render
     return (
-        <>
-            <div className="card">
-                {/* <div class="mt-n5 mb-3 d-flex justify-content-end">
-                    <a
-                        href="/admin"
-                        className="btn bg-gradient-primary mr-2"
-                    >
-                        Dashboard
-                    </a>
-                    <a
-                        href="/admin/ordersma"
-                        className="btn bg-gradient-primary"
-                    >
-                        Orders
-                    </a>
-                </div> */}
-
-                <div className="card-body p-2 p-md-4 pt-0">
-                    <div className="row">
-                        <div className="col-md-6 col-lg-6 mb-2">
-                            <div className="row mb-2">
-                                <div className="col-12">
-                                    <CustomerSelect
-                                        setCustomerId={setCustomerId}
-                                    />
-                                </div>
-                                {/* <div className="col-6">
-                                <form className="form">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Enter barcode"
-                                        value={searchQuery}
-                                        onChange={(e) =>
-                                            setSearchQuery(e.target.value)
-                                        }
-                                    />
-                                </form>
-                            </div> */}
+        <div className="pos-app-container">
+            {/* LEFT PANEL: PRODUCTS */}
+            <div className="d-flex flex-column border-right bg-white" style={{ flex: '0 0 65%', maxWidth: '65%' }}>
+                {/* Header / Search */}
+                <div className="p-3 border-bottom shadow-sm bg-light">
+                    <div className="d-flex align-items-center">
+                        <div className="input-group input-group-lg mr-3">
+                            <div className="input-group-prepend">
+                                <span className="input-group-text bg-white border-right-0"><i className="fas fa-search text-muted"></i></span>
                             </div>
-                            <Cart
-                                carts={carts}
-                                setCartUpdated={setCartUpdated}
-                                cartUpdated={cartUpdated}
+                            <input 
+                                type="text" 
+                                className="form-control border-left-0 pl-0" 
+                                placeholder="Scan Barcode or Search Product..." 
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                autoFocus
                             />
-                            <div className="card">
-                                <div className="card-body">
-                                    <div className="row text-bold mb-1">
-                                        <div className="col">Sub Total:</div>
-                                        <div className="col text-right mr-2">
-                                            {total}
-                                        </div>
-                                    </div>
-                                    <div className="row text-bold mb-1">
-                                        <div className="col">Discount:</div>
-                                        <div className="col text-right mr-2">
-                                            <input
-                                                type="number"
-                                                className="form-control form-control-sm"
-                                                placeholder="Enter discount"
-                                                min={0}
-                                                disabled={total <= 0}
-                                                value={orderDiscount}
-                                                onChange={(e) => {
-                                                    const value =
-                                                        e.target.value;
-                                                    if (
-                                                        parseFloat(value) >
-                                                        total ||
-                                                        parseFloat(value) < 0
-                                                    ) {
-                                                        return;
-                                                    }
-                                                    setOrderDiscount(value);
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="row text-bold mb-1">
-                                        <div className="col">
-                                            Apply Fractional Discount:
-                                        </div>
-                                        <div className="col text-right mr-2">
-                                            <input
-                                                type="checkbox"
-                                                className="form-control-sm"
-                                                disabled={total <= 0}
-                                                checked={autoFractionalDiscount && total > 0 && (total % 1) > 0}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        const fractionalPart =
-                                                            total % 1;
-                                                        setOrderDiscount(
-                                                            fractionalPart?.toFixed(
-                                                                2
-                                                            )
-                                                        );
-                                                    } else {
-                                                        setOrderDiscount(0);
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="row text-bold mb-1">
-                                        <div className="col">Total:</div>
-                                        <div className="col text-right mr-2">
-                                            {updateTotal}
-                                        </div>
-                                    </div>
-                                    <div className="row text-bold mb-1">
-                                        <div className="col">Paid:</div>
-                                        <div className="col text-right mr-2">
-                                            <input
-                                                type="number"
-                                                className="form-control form-control-sm"
-                                                placeholder="Customer pays"
-                                                min={0}
-                                                disabled={total <= 0}
-                                                value={paid}
-                                                onFocus={(e) => {
-                                                    // Clear zero when focused for professional UX
-                                                    if (parseFloat(e.target.value) === 0) {
-                                                        setPaid('');
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    // Restore to 0 if left empty
-                                                    if (e.target.value === '' || e.target.value === null) {
-                                                        setPaid(0);
-                                                    }
-                                                }}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    if (parseFloat(value) < 0) {
-                                                        return;
-                                                    }
-                                                    setPaid(value);
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    {/* Show Change when customer pays more AND cart has items */}
-                                    {parseFloat(updateTotal) > 0 && parseFloat(paid) > parseFloat(updateTotal) && (
-                                        <div className="row text-bold mb-1" style={{ color: '#28a745' }}>
-                                            <div className="col">Change:</div>
-                                            <div className="col text-right mr-2">
-                                                Rs. {(parseFloat(paid) - parseFloat(updateTotal)).toFixed(2)}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {/* Show Due when customer pays less OR cart is empty */}
-                                    {(parseFloat(updateTotal) <= 0 || parseFloat(paid) <= parseFloat(updateTotal)) && (
-                                        <div className="row text-bold">
-                                            <div className="col">Due:</div>
-                                            <div className="col text-right mr-2">
-                                                {parseFloat(updateTotal) > 0 ? due : '0.00'}
-                                            </div>
-                                        </div>
-                                    )}
+                        </div>
+                    </div>
+                </div>
 
-                                    {/* Payment Method Selection - Moved Below Due */}
-                                    <div className="row text-bold mb-1 mt-3 pt-2" style={{ borderTop: '1px dashed #eee' }}>
-                                        <div className="col-12 mb-1">Payment Method:</div>
-                                        <div className="col-12">
-                                            <div className="btn-group btn-group-toggle w-100" data-toggle="buttons">
-                                                <label className={`btn btn-maroon btn-sm ${paymentMethod === 'cash' ? 'active' : ''}`} onClick={() => setPaymentMethod('cash')}>
-                                                    <input type="radio" name="payment_method" autoComplete="off" checked={paymentMethod === 'cash'} readOnly /> 
-                                                    <i className="fas fa-money-bill-wave"></i> Cash
-                                                </label>
-                                                <label className={`btn btn-maroon btn-sm ${paymentMethod === 'card' ? 'active' : ''}`} onClick={() => setPaymentMethod('card')}>
-                                                    <input type="radio" name="payment_method" autoComplete="off" checked={paymentMethod === 'card'} readOnly /> 
-                                                    <i className="fas fa-credit-card"></i> Card
-                                                </label>
-                                                <label className={`btn btn-maroon btn-sm ${paymentMethod === 'online' ? 'active' : ''}`} onClick={() => setPaymentMethod('online')}>
-                                                    <input type="radio" name="payment_method" autoComplete="off" checked={paymentMethod === 'online'} readOnly /> 
-                                                    <i className="fas fa-mobile-alt"></i> Online (Easypaisa etc.)
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Transaction ID Input (Only for Card/Online) */}
-                                    {paymentMethod !== 'cash' && (
-                                        <div className="row text-bold mb-1 mt-2">
-                                            <div className="col">Trx ID:</div>
-                                            <div className="col text-right mr-2">
-                                                <input
-                                                    type="text"
-                                                    className="form-control form-control-sm"
-                                                    placeholder="Transaction ID (Optional)"
-                                                    value={transactionId}
-                                                    onChange={(e) => setTransactionId(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                {/* Product Grid */}
+                <div id="product-grid-container" className="flex-grow-1 custom-scroll p-3" style={{ backgroundColor: '#f4f6f9' }}>
+                    <div className="row no-gutters">
+                        {products.map((product) => (
+                            <ProductCard 
+                                key={product.id} 
+                                product={product} 
+                                onClick={addProductToCart} 
+                                baseUrl={fullDomainWithPort} 
+                            />
+                        ))}
+                        {products.length === 0 && !loading && (
+                            <div className="col-12 text-center mt-5 text-muted">
+                                <i className="fas fa-box-open fa-3x mb-3"></i>
+                                <h5>No products found</h5>
                             </div>
-                            <div className="row">
-                                <div className="col">
-                                    <button
-                                        onClick={() => cartEmpty()}
-                                        type="button"
-                                        data-clear-cart-btn
-                                        className="btn bg-gradient-danger btn-block text-white text-bold"
-                                    >
-                                        Clear Cart
-                                    </button>
-                                </div>
-                                <div className="col">
-                                    <button
-                                        onClick={() => {
-                                            orderCreate();
-                                        }}
-                                        type="button"
-                                        data-checkout-btn
-                                        className="btn bg-gradient-maroon btn-block text-white text-bold"
-                                    >
-                                        Checkout
-                                    </button>
+                        )}
+                        {loading && (
+                            <div className="col-12 text-center py-4">
+                               <div className="spinner-border text-primary" role="status"></div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* RIGHT PANEL: CART & CHECKOUT */}
+            <div className="d-flex flex-column bg-white shadow-lg" style={{ flex: '1', zIndex: 10 }}>
+                {/* Customer Select */}
+                <div className="p-3 border-bottom bg-gradient-light">
+                    <CustomerSelect setCustomerId={setCustomerId} />
+                </div>
+
+                {/* Cart Items (Scrollable) */}
+                <div className="flex-grow-1 custom-scroll p-0" style={{ backgroundColor: '#fff' }}>
+                    <div className="p-2">
+                        <Cart 
+                            carts={carts} 
+                            setCartUpdated={setCartUpdated} 
+                            cartUpdated={cartUpdated} 
+                        />
+                    </div>
+                </div>
+
+                {/* Footer: Totals & Actions */}
+                <div className="border-top bg-light p-3" style={{ fontSize: '1.rem' }}>
+                     {/* Discount / Auto-Round Component */}
+                     <div className="bg-white p-2 rounded border mb-2">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                            <span className="font-weight-bold text-dark"><i className="fas fa-tags mr-1 text-primary"></i> Discount</span>
+                            <div className="input-group input-group-sm" style={{ width: '180px' }}>
+                                <input 
+                                    type="number" 
+                                    className="form-control font-weight-bold text-right" 
+                                    placeholder="0"
+                                    min="0"
+                                    max={total}
+                                    value={orderDiscount}
+                                    onChange={e => {
+                                        const val = parseFloat(e.target.value);
+                                        if(!isNaN(val) && val >= 0 && val <= total) setOrderDiscount(val);
+                                        else if (e.target.value === '') setOrderDiscount('');
+                                    }}
+                                />
+                                <div className="input-group-append">
+                                    <span className="input-group-text">PKR</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="col-md-6 col-lg-6">
-                            <div className="row">
-                                <div className="input-group mb-2 col-md-6">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-barcode"></i>
-                                        </span>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <span className="text-muted text-sm" style={{ fontSize: '0.85rem' }}>Auto-Round Off <small>(0.99 → 1.00)</small></span>
+                            <div className="custom-control custom-switch">
+                                <input 
+                                    type="checkbox" 
+                                    className="custom-control-input" 
+                                    id="autoFrac" 
+                                    checked={autoFractionalDiscount && total > 0 && (total % 1) > 0} 
+                                    readOnly 
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <label className="custom-control-label" htmlFor="autoFrac" style={{ cursor: 'pointer' }}></label>
+                            </div>
+                        </div>
+                     </div>
+
+                    {/* Grand Total */}
+                    <div className="d-flex justify-content-between align-items-center mb-3 p-3 bg-gradient-dark rounded shadow-sm">
+                        <div className="line-height-1">
+                            <small className="text-white-50 text-uppercase font-weight-bold" style={{ fontSize: '0.7em' }}>Total Payable</small>
+                            <h4 className="m-0 text-white font-weight-light">PKR</h4>
+                        </div>
+                        <h1 className="m-0 text-white font-weight-bold display-4" style={{ fontSize: '3.5rem' }}>{Math.max(0, updateTotal)}</h1>
+                    </div>
+
+                    <div className="row no-gutters">
+                        <div className="col-4 pr-1">
+                            <button 
+                                onClick={cartEmpty} 
+                                className="btn btn-outline-danger btn-block py-3 font-weight-bold border-2"
+                                disabled={total <= 0}
+                                style={{ height: '100%', borderRadius: '8px' }}
+                            >
+                                <i className="fas fa-trash-alt fa-lg d-block mb-1"></i> CLEAR
+                            </button>
+                        </div>
+                        <div className="col-8 pl-1">
+                            <button 
+                                onClick={handleCheckoutClick} 
+                                className="btn btn-success btn-block py-3 font-weight-bold shadow hover-lift"
+                                style={{ fontSize: '1.4rem', borderRadius: '8px', height: '100%' }}
+                                disabled={total <= 0}
+                                title="Shortcut: Enter or F4"
+                            >
+                                <div className="d-flex justify-content-center align-items-center">
+                                    <div className="text-left line-height-1 mr-3">
+                                        <small className="d-block font-weight-normal opacity-75" style={{ fontSize: '0.6em' }}>ENTER</small>
+                                        PAY
                                     </div>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Enter Product Barcode"
-                                        value={searchBarcode}
-                                        autoFocus
-                                        onChange={(e) =>
-                                            setSearchBarcode(e.target.value)
-                                        }
-                                    />
+                                    <i className="fas fa-chevron-circle-right fa-lg"></i>
                                 </div>
-                                <div className="mb-2 col-md-6">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Enter Product Name"
-                                        value={searchQuery}
-                                        onChange={(e) =>
-                                            setSearchQuery(e.target.value)
-                                        }
-                                    />
-                                </div>
-                            </div>
-                            <div className="row products-card-container">
-                                {products.length > 0 &&
-                                    products.map((product) => (
-                                        <ProductCard
-                                            key={product.id}
-                                            product={product}
-                                            onClick={addProductToCart}
-                                            baseUrl={fullDomainWithPort}
-                                        />
-                                    ))}
-                            </div>
-                            {loading && (
-                                <div className="loading-more">
-                                    <div className="loading-spinner"></div>
-                                    <span>Loading...</span>
-                                </div>
-                            )}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-            <Toaster position="top-right" reverseOrder={false} />
-        </>
+
+            {/* MODALS */}
+            <PaymentModal 
+                show={showPaymentModal} 
+                total={updateTotal} 
+                onCancel={() => setShowPaymentModal(false)}
+                onConfirm={handlePaymentConfirm}
+            />
+            
+            <ReceiptModal
+                show={showReceiptModal}
+                url={receiptUrl}
+                onClose={() => {
+                   setShowReceiptModal(false);
+                   setReceiptUrl('');
+                }}
+            />
+        </div>
     );
 }

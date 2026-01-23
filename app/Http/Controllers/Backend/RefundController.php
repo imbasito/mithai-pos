@@ -32,9 +32,9 @@ class RefundController extends Controller
                 ->addColumn('created_at', fn($data) => $data->created_at->format('d M, Y h:i A'))
                 ->addColumn('action', function ($data) {
                     $url = route('backend.admin.refunds.receipt', $data->id);
-                    return '<a href="#" onclick="window.open(\'' . $url . '\', \'RefundReceipt\', \'width=450,height=600,toolbar=no,menubar=no,scrollbars=yes,resizable=yes,location=no,status=no\'); return false;" class="btn btn-sm btn-info">
+                    return '<button type="button" onclick="openRefundReceipt(\'' . $url . '\')" class="btn btn-sm btn-info">
                         <i class="fas fa-receipt"></i> Receipt
-                    </a>';
+                    </button>';
                 })
                 ->rawColumns(['return_number', 'action'])
                 ->toJson();
@@ -52,8 +52,14 @@ class RefundController extends Controller
 
         $order = Order::with(['products.product', 'customer'])->findOrFail($orderId);
         
+        // Calculate already returned quantities for each order product
+        foreach($order->products as $item) {
+            $item->returned_qty = ReturnItem::where('order_product_id', $item->id)->sum('quantity');
+            $item->available_qty = $item->quantity - $item->returned_qty;
+        }
+
         // Check if order already has a full refund
-        if ($order->is_returned) {
+        if ($order->is_returned || $order->products->sum('available_qty') <= 0) {
             return response()->json(['error' => 'This order has already been fully refunded.'], 400);
         }
 
@@ -91,11 +97,16 @@ class RefundController extends Controller
 
             foreach ($request->items as $item) {
                 $orderProduct = OrderProduct::findOrFail($item['order_product_id']);
-                $quantity = min($item['quantity'], $orderProduct->quantity); // Can't return more than purchased
+                
+                // Calculate already returned quantity to verify availability
+                $alreadyReturned = ReturnItem::where('order_product_id', $orderProduct->id)->sum('quantity');
+                $availableQty = $orderProduct->quantity - $alreadyReturned;
+                
+                $quantity = min($item['quantity'], $availableQty); 
 
                 if ($quantity <= 0) continue;
 
-                // Calculate refund amount for this item
+                // Calculate refund amount for this item (exact proportional refund based on original bill)
                 $pricePerUnit = $orderProduct->total / $orderProduct->quantity;
                 $refundAmount = $pricePerUnit * $quantity;
                 $totalRefund += $refundAmount;
@@ -149,14 +160,15 @@ class RefundController extends Controller
         $return = ProductReturn::with([
             'order.customer',
             'order.products.product',
+            'order.returns', // Load all returns for this order
             'items.product',
             'items.orderProduct',
             'processedBy'
         ])->findOrFail($id);
 
-        // DEBUG: Check if data is loaded
-        // DEBUG: Check if data is loaded
-        // dd($return);
+        // Calculate total refunded for this order across all return instances
+        $orderTotalRefunded = $return->order->returns->sum('total_refund');
+        $return->order_total_refunded = $orderTotalRefunded;
 
         $maxWidth = readConfig('receiptMaxwidth') ?? '300px';
         return view('backend.refunds.receipt', compact('return', 'maxWidth'));

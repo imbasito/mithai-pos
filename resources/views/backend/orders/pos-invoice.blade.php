@@ -3,328 +3,255 @@
 @section('content')
 
   <style>
-    /* General Receipt Styling */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
+
+    /* Reset & Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f0f2f5;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12px;
+      color: #000;
+      overflow: hidden; /* Hide scrollbars as requested */
+    }
+    
+    /* Scrollbar Hiding for Webkit */
+    body::-webkit-scrollbar { display: none; }
+
+    /* Receipt Container (Thermal 80mm) */
     .receipt-container {
       width: 100%;
-      max-width: 78mm; /* Standard 80mm thermal paper safe width */
-      margin: 0 auto;
+      max-width: 80mm;
+      margin: 20px auto;
       background: #fff;
-      font-family: 'Courier New', Courier, monospace; /* Monospace for perfect alignment */
-      font-size: 13px;
-      color: #000;
-      line-height: 1.2;
-    }
-    
-    /* Screen-Only Styling (Box effect) */
-    @media screen {
-      .receipt-container {
-        border: 1px dotted #ccc;
-        padding: 10px;
-        margin-top: 10px;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      }
+      padding: 15px 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
-    /* Print Styling */
+    /* Print Overrides */
     @media print {
-      @page {
-        margin: 0;
-        size: 80mm auto; /* Creates a 'Strip' PDF instead of A4 */
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        background: #fff;
-        width: 72mm; /* Content fits safely within 80mm */
-      }
+      body { background: #fff; }
       .receipt-container {
-        border: none;
-        padding: 0;
-        margin: 0;
-        box-shadow: none;
         width: 100%;
-        max-width: 72mm; /* Ensure it fits */
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border: none;
       }
-      .no-print {
-        display: none !important;
-      }
+      .no-print { display: none !important; }
+      @page { margin: 0; size: auto; }
     }
 
-    /* Helpers */
+    /* Typography helpers */
     .text-center { text-align: center; }
-    .text-left { text-align: left; }
     .text-right { text-align: right; }
-    .text-bold { font-weight: bold; }
+    .text-left { text-align: left; }
+    .font-bold { font-weight: 700; }
     .text-uppercase { text-transform: uppercase; }
+    .text-sm { font-size: 11px; }
+    .text-xs { font-size: 10px; }
+
+    /* Layout Elements */
+    .logo-area img { max-width: 60%; height: auto; margin-bottom: 8px; }
+    .header-info { margin-bottom: 15px; }
     
-    /* Separators */
-    .dashed-line {
-      border: none;
+    .divider {
       border-top: 1px dashed #000;
-      margin: 6px 0;
-      height: 1px;
-      width: 100%;
-      display: block;
+      margin: 8px 0;
+    }
+    
+    .double-divider {
+      border-top: 2px dashed #000;
+      margin: 10px 0;
     }
 
-    /* Table Styling */
+    /* Tables */
     table { width: 100%; border-collapse: collapse; }
-    td, th { padding: 3px 0; vertical-align: top; }
-    th { border-bottom: 1px dashed #000; font-weight: bold; text-align: inherit; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; padding-bottom: 4px; border-bottom: 1px solid #000; }
+    td { padding: 4px 0; vertical-align: top; }
+    
+    .totals-table td { padding: 2px 0; }
+    .grand-total { font-size: 16px; font-weight: 700; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; margin-top: 5px; }
 
-    /* Specific Sections */
-    .logo-area img { max-width: 80%; height: auto; display: block; margin: 0 auto 5px; }
-    .shop-name { font-size: 16px; font-weight: bold; margin: 5px 0 0; }
-    .meta-info { font-size: 11px; margin-bottom: 5px; }
-    
-    .barcode-area { margin: 10px 0; }
-    .footer-note { font-size: 11px; margin-top: 10px; }
-    .software-credit { font-size: 10px; margin-top: 5px; border-top: 1px solid #000; padding-top: 4px; }
-    
-    /* Loading Spinner */
-    .spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 5px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .action-buttons {
-          max-width: 78mm;
-          margin: 10px auto;
-          display: flex;
-          gap: 10px;
-      }
-      .btn-action {
-          flex: 1;
-          padding: 8px;
-          border: none;
-          cursor: pointer;
-          font-weight: bold;
-          color: #fff;
-          font-family: sans-serif;
-          font-size: 14px;
-          text-align: center;
-      }
-      .btn-print { background: #007bff; }
-      .btn-close { background: #6c757d; }
+    .footer { margin-top: 20px; text-align: center; }
+    .barcode-container { margin: 15px 0; display: flex; justify-content: center; }
   </style>
 
   <div class="receipt-container" id="printable-section">
-    <!-- Header -->
-    <div class="text-center">
+    <!-- Header / Logo -->
+    <div class="text-center header-info">
       @if(readConfig('is_show_logo_invoice'))
       <div class="logo-area">
-        <img src="{{ assetImage(readconfig('site_logo')) }}" alt="Logo">
+        <img src="{{ assetImage(readconfig('site_logo')) }}" alt="Store Logo">
       </div>
       @endif
       
       @if(readConfig('is_show_site_invoice'))
-      <div class="shop-name">{{ readConfig('site_name') }}</div>
+      <div class="font-bold text-uppercase" style="font-size: 16px; margin-bottom: 4px;">{{ readConfig('site_name') }}</div>
       @endif
       
-      <div class="meta-info">
+      <div class="text-xs">
         @if(readConfig('is_show_address_invoice')){{ readConfig('contact_address') }}<br>@endif
-        @if(readConfig('is_show_phone_invoice')){{ readConfig('contact_phone') }}<br>@endif
+        @if(readConfig('is_show_phone_invoice'))Tel: {{ readConfig('contact_phone') }}<br>@endif
         @if(readConfig('is_show_email_invoice')){{ readConfig('contact_email') }}@endif
       </div>
     </div>
 
-    <div class="dashed-line"></div>
+    <div class="divider"></div>
 
-    <!-- Order Info -->
-    <div class="row" style="display: flex; justify-content: space-between; font-size: 12px;">
+    <!-- Order Metadata -->
+    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
       <div class="text-left">
-        <strong>Order: #{{ $order->id }}</strong><br>
-        Date: {{ date('d-M-Y h:i A') }}<br>
-        Cashier: {{ auth()->user()->name }}
+        Inv: <strong>#{{ $order->id }}</strong><br>
+        {{ date('d/m/Y h:i A') }}
       </div>
       <div class="text-right">
-        @php
-            $transaction = $order->transactions->sortByDesc('id')->first();
-        @endphp
-        Type: <strong>{{ ucfirst($transaction->paid_by ?? 'Cash') }}</strong>
-        @if(!empty($transaction->transaction_id))
-        <br>Ref: {{ $transaction->transaction_id }}
-        @endif
+        Staff: {{ Str::limit(auth()->user()->name, 10) }}<br>
+        @php $transaction = $order->transactions->sortByDesc('id')->first(); @endphp
+        Method: <strong>{{ ucfirst(optional($transaction)->paid_by ?? 'Other') }}</strong>
       </div>
     </div>
 
-    <!-- Customer Info -->
+    <!-- Customer -->
     @if(readConfig('is_show_customer_invoice') && $order->customer)
-    <div class="dashed-line"></div>
-    <div class="text-left" style="font-size: 12px;">
-      Client: {{ $order->customer->name }}<br>
-      @if($order->customer->address) Addr: {{ $order->customer->address }}<br> @endif
-      @if($order->customer->phone) Phone: {{ $order->customer->phone }} @endif
+    <div class="divider"></div>
+    <div class="text-left text-sm">
+      <strong>Customer:</strong> {{ $order->customer->name }}
+      @if($order->customer->phone) <br>Ph: {{ $order->customer->phone }} @endif
     </div>
     @endif
 
-    <div class="dashed-line"></div>
+    <div class="double-divider"></div>
 
-    <!-- Items Table -->
+    <!-- Items -->
     <table>
       <thead>
         <tr>
-          <th class="text-left" style="width: 45%;">Item</th>
-          <th class="text-center" style="width: 15%;">Qty</th>
-          <th class="text-right" style="width: 20%;">Price</th>
-          <th class="text-right" style="width: 20%;">Total</th>
+          <th width="45%">Item</th>
+          <th width="15%" class="text-center">Qty</th>
+          <th width="20%" class="text-right">Price</th>
+          <th width="20%" class="text-right">Amt</th>
         </tr>
       </thead>
       <tbody>
         @foreach ($order->products as $item)
         <tr>
-          <td class="text-left">{{ $item->product->name }}</td>
-          <td class="text-center">{{ $item->quantity }}</td>
+          <td>
+            <div style="line-height: 1.2;">{{ $item->product->name }}</div>
+          </td>
+          <td class="text-center">x{{ $item->quantity }}</td>
           <td class="text-right">{{ number_format($item->discounted_price, 0) }}</td>
-          <td class="text-right">{{ number_format($item->total, 2) }}</td>
+          <td class="text-right font-bold">{{ number_format($item->total, 2) }}</td>
         </tr>
         @endforeach
       </tbody>
     </table>
 
-    <div class="dashed-line"></div>
+    <div class="divider"></div>
 
     <!-- Totals -->
-    <table style="font-weight: bold;">
+    <table class="totals-table">
       <tr>
-        <td class="text-left">Subtotal:</td>
-        <td class="text-right">{{ number_format($order->sub_total, 2) }}</td>
+        <td class="text-right" width="60%">Subtotal:</td>
+        <td class="text-right font-bold" width="40%">{{ number_format($order->sub_total, 2) }}</td>
       </tr>
       @if($order->discount > 0)
       <tr>
-        <td class="text-left">Discount:</td>
-        <td class="text-right">-{{ number_format($order->discount, 2) }}</td>
+        <td class="text-right">Discount:</td>
+        <td class="text-right">({{ number_format($order->discount, 2) }})</td>
       </tr>
       @endif
-      <tr style="font-size: 15px;">
-        <td class="text-left">TOTAL:</td>
-        <td class="text-right">{{ number_format($order->total, 2) }}</td>
+
+      <!-- Empty Row for visual spacing -->
+      <tr><td colspan="2" style="height: 5px;"></td></tr>
+
+      <tr class="grand-total">
+        <td class="text-left" style="font-size: 14px;">TOTAL</td>
+        <td class="text-right" style="font-size: 18px;">{{ number_format($order->total, 2) }}</td>
       </tr>
       
-      <!-- Payments -->
+      <tr><td colspan="2" style="height: 5px;"></td></tr>
+
       <tr>
-        <td colspan="2"><div class="dashed-line" style="margin: 3px 0;"></div></td>
-      </tr>
-      <tr>
-        <td class="text-left">Paid:</td>
+        <td class="text-right">Paid Amount:</td>
         <td class="text-right">{{ number_format($order->paid, 2) }}</td>
       </tr>
-      @if($order->paid > $order->total)
-      <tr>
-        <td class="text-left">Change:</td>
-        <td class="text-right">{{ number_format($order->paid - $order->total, 2) }}</td>
-      </tr>
-      @endif
+      
       @if($order->due > 0)
       <tr>
-        <td class="text-left">Due Balance:</td>
-        <td class="text-right">{{ number_format($order->due, 2) }}</td>
+        <td class="text-right text-uppercase" style="color: #000;">Balance Due:</td>
+        <td class="text-right font-bold">{{ number_format($order->due, 2) }}</td>
+      </tr>
+      @endif
+
+      @if($order->paid > $order->total)
+      <tr>
+        <td class="text-right text-uppercase">Change:</td>
+        <td class="text-right font-bold">{{ number_format($order->paid - $order->total, 2) }}</td>
       </tr>
       @endif
     </table>
 
-    <div class="dashed-line"></div>
+    <div class="divider"></div>
+
+    <!-- Footer Note -->
+    @if(readConfig('is_show_note_invoice'))
+    <div class="text-center text-sm" style="margin-top: 10px;">
+      {{ readConfig('note_to_customer_invoice') }}
+    </div>
+    @endif
 
     <!-- Barcode -->
-    <div class="text-center barcode-area">
-      <svg id="barcode" style="width: 100%; max-width: 200px; height: 40px;"></svg>
-      <div style="font-size: 10px; letter-spacing: 2px;">ORD-{{ str_pad($order->id, 8, '0', STR_PAD_LEFT) }}</div>
+    <div class="barcode-container">
+      <svg id="barcode"></svg>
     </div>
 
-    <!-- Footer -->
-    <div class="text-center">
-      @if(readConfig('is_show_note_invoice'))
-      <p class="footer-note">{{ readConfig('note_to_customer_invoice') }}</p>
-      @endif
-      
-      <div class="software-credit">
-        <strong>Software by SINYX</strong><br>
-         Contact: +92 342 9031328
-       </div>
-     </div>
-   </div>
- 
-   <!-- Action Buttons -->
-   <div class="action-buttons no-print">
-       <button onclick="printReceipt()" class="btn-action btn-print">Print Receipt</button>
-       <button onclick="window.close()" class="btn-action btn-close">Close</button>
-   </div>
- 
-   @push('script')
-   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-   <script>
-     function printReceipt() {
-        // Safe selection of the print button
-        const btn = document.querySelector('.btn-print');
-        const originalText = btn ? btn.innerHTML : 'Print Receipt';
-        
-        // Context Bridge Fallback
-        const electronApp = window.electron || (window.opener && window.opener.electron);
-        const settings = window.posSettings || (window.opener && window.opener.posSettings) || {};
-        
-        if (electronApp && electronApp.printSilent) {
-             if(btn) {
-                 btn.disabled = true;
-                 btn.innerHTML = '<span class="spinner"></span> Printing...';
-             }
-             
-             const printerName = settings.receiptPrinter ? settings.receiptPrinter : '';
-             
-             electronApp.printSilent(window.location.href, printerName)
-                .then(res => {
-                    if (!res.success) {
-                        console.error('Print Error: ' + res.error);
-                        // Optional: Update button text to show error temp
-                        if(btn) btn.innerHTML = '<span style="color:red">Failed</span>';
-                    }
-                })
-                .catch(err => {
-                    console.error('System Error: ' + err);
-                })
-                .finally(() => {
-                    if(btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    }
-                });
-        } else {
-             console.warn('Electron API fallbacks failed. Using browser print.');
-            window.print();
-        }
+    <!-- Software Credit -->
+    <div class="text-center text-xs" style="margin-top: 10px; color: #666;">
+      Software by <strong>SINYX</strong><br>
+      Contact: +92 342 9031328
+    </div>
+
+  </div>
+
+  @push('script')
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script>
+    function printReceipt() {
+       // Using browser print or Custom Electron Bridge
+       if (window.electron && window.electron.printSilent) {
+           // Provide feedback?
+           window.electron.printSilent(window.location.href);
+           return;
+       }
+       window.print();
     }
 
-     document.addEventListener('DOMContentLoaded', function() {
-       // SHORTCUTS: Enter=Print, Esc=Close
-       document.addEventListener('keydown', function(e) {
-           if (e.key === 'Enter') {
-               e.preventDefault();
-               printReceipt();
-           } else if (e.key === 'Escape') {
-               e.preventDefault();
-               window.close();
-           }
-       });
-
-       try {
-        JsBarcode("#barcode", "ORD{{ str_pad($order->id, 8, '0', STR_PAD_LEFT) }}", {
-          format: "CODE128",
-          width: 1.5,
-          height: 35,
-          displayValue: false,
-          margin: 0
+    document.addEventListener('DOMContentLoaded', function() {
+        // Keyboard Shortcuts: Enter to Print, Esc to Close
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                printReceipt();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                window.parent.postMessage('close-modal', '*');
+                window.close();
+            }
         });
-      } catch (e) {
-        console.error('Barcode error:', e);
-      }
+
+        // Generate Barcode
+        try {
+            JsBarcode("#barcode", "ORD{{ str_pad($order->id, 8, '0', STR_PAD_LEFT) }}", {
+                format: "CODE128",
+                width: 1.5,
+                height: 40,
+                displayValue: true,
+                fontSize: 12,
+                margin: 0
+            });
+        } catch (e) { console.error(e); }
     });
   </script>
   @endpush

@@ -165,6 +165,72 @@
             border: none;
             display: block;
         }
+
+        /* ========= POS APP SHELL (Fixed Layout) ========== */
+        .pos-app-container {
+            height: calc(100vh - 57px);
+            overflow: hidden;
+            display: flex;
+            /* Zoom Level as requested */
+            zoom: 0.85; 
+            /* Alternative if zoom has issues in some browsers: */
+            /* transform: scale(0.85); transform-origin: top left; width: 117.65%; height: 117.65%; */
+        }
+
+        /* Custom Scrollbar */
+        .custom-scroll {
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #adb5bd #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px; /* Slightly thicker for ease of use */
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #ced4da;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #adb5bd;
+        }
+
+        /* Professional Product Grid Styles */
+        .pos-product-card {
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid transparent; /* Cleaner look */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            height: 100%;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .pos-product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+            z-index: 10;
+        }
+        .pos-product-img-wrapper {
+            height: 140px; /* Slightly taller */
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            padding: 10px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .pos-product-img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            transition: transform 0.3s;
+        }
+        .pos-product-card:hover .pos-product-img {
+            transform: scale(1.05); /* Subtle zoom on hover */
+        }
     </style>
     @stack('style')
     @viteReactRefresh

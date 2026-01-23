@@ -2,307 +2,251 @@
 @section('title', 'Return Receipt #'.$return->return_number)
 @section('content')
 
+  <!-- IMMEDIATE OVERRIDE: Kill the parent spinner the millisecond this script executes -->
+  <script>
+      (function() {
+          try {
+              if (window.parent && window.parent.finalizeReceiptLoad) {
+                  window.parent.finalizeReceiptLoad();
+              }
+              if (window.parent && window.parent.postMessage) {
+                  window.parent.postMessage('receipt-loaded', '*');
+              }
+          } catch(e) {}
+      })();
+  </script>
+
   <style>
-    /* General Receipt Styling - Matching POS Invoice */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
+
+    /* Reset & Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #fff;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12px;
+      color: #000;
+      padding: 0;
+    }
+    
+    body::-webkit-scrollbar { display: none; }
+
+    /* Receipt Container (Thermal 80mm) */
     .receipt-container {
       width: 100%;
-      max-width: 78mm; /* Standard 80mm thermal paper safe width */
+      max-width: 80mm;
       margin: 0 auto;
       background: #fff;
-      font-family: 'Courier New', Courier, monospace; /* Monospace for perfect alignment */
-      font-size: 13px;
-      color: #000;
-      line-height: 1.2;
-    }
-    
-    /* Screen-Only Styling (Box effect) */
-    @media screen {
-      .receipt-container {
-        border: 1px dotted #ccc;
-        padding: 10px;
-        margin-top: 10px;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      }
-      .action-buttons {
-          max-width: 78mm;
-          margin: 10px auto;
-          display: flex;
-          gap: 10px;
-      }
-      .btn-action {
-          flex: 1;
-          padding: 8px;
-          border: none;
-          cursor: pointer;
-          font-weight: bold;
-          color: #fff;
-          font-family: sans-serif;
-          font-size: 14px;
-          text-align: center;
-      }
-      .btn-print { background: #007bff; }
-      .btn-close { background: #6c757d; }
+      padding: 15px 10px;
     }
 
-    /* Print Styling */
+    /* Print Overrides */
     @media print {
-      @page {
-        margin: 0;
-        size: 80mm auto; /* Creates a 'Strip' PDF instead of A4 */
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        background: #fff;
-        width: 72mm;
-      }
+      body { background: #fff; overflow: visible !important; }
       .receipt-container {
-        border: none;
-        padding: 0;
-        margin: 0;
-        box-shadow: none;
         width: 100%;
-        max-width: 72mm;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
       }
-      .no-print {
-        display: none !important;
-      }
+      .no-print { display: none !important; }
+      @page { margin: 0; size: auto; }
     }
 
-    /* Helpers */
     .text-center { text-align: center; }
-    .text-left { text-align: left; }
     .text-right { text-align: right; }
-    .text-bold { font-weight: bold; }
+    .text-left { text-align: left; }
+    .font-bold { font-weight: 700; }
     .text-uppercase { text-transform: uppercase; }
-    
-    /* Separators */
-    .dashed-line {
-      border: none;
-      border-top: 1px dashed #000;
-      margin: 6px 0;
-      height: 1px;
-      width: 100%;
-      display: block;
-    }
+    .text-xs { font-size: 10px; }
 
-    /* Table Styling */
+    /* Layout Elements (Exactly like POS) */
+    .logo-area img { max-width: 150px; height: auto; margin-bottom: 8px; }
+    .header-info { margin-bottom: 12px; }
+    
+    .divider { border-top: 1px dashed #000; margin: 6px 0; }
+    .double-divider { border-top: 2px dashed #000; margin: 8px 0; }
+
     table { width: 100%; border-collapse: collapse; }
-    td, th { padding: 3px 0; vertical-align: top; }
-    th { border-bottom: 1px dashed #000; font-weight: bold; text-align: inherit; }
-
-    /* Specific Sections */
-    .logo-area img { max-width: 80%; height: auto; display: block; margin: 0 auto 5px; }
-    .shop-name { font-size: 16px; font-weight: bold; margin: 5px 0 0; }
-    .meta-info { font-size: 11px; margin-bottom: 5px; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; padding-bottom: 4px; border-bottom: 1px solid #000; }
+    td { padding: 4px 0; vertical-align: top; }
     
-    .barcode-area { margin: 10px 0; }
-    .footer-note { font-size: 11px; margin-top: 10px; }
-    .software-credit { font-size: 10px; margin-top: 5px; border-top: 1px solid #000; padding-top: 4px; }
-    
-    /* Loading Spinner */
-    .spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 5px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .totals-table td { padding: 2px 0; }
+    .grand-total { 
+        font-size: 16px; 
+        font-weight: 700; 
+        border-top: 1.5px solid #000; 
+        border-bottom: 1.5px solid #000; 
+        padding: 6px 0; 
+        margin-top: 5px; 
     }
   </style>
 
   <div class="receipt-container" id="printable-section">
-    <!-- Header -->
-    <div class="text-center">
-      @if(readConfig('is_show_logo_invoice') && readConfig('site_logo'))
+    <!-- Header / Logo (Exactly like POS) -->
+    <div class="text-center header-info">
+      @if(readConfig('is_show_logo_invoice'))
       <div class="logo-area">
-        <img src="{{ assetImage(readConfig('site_logo')) }}" alt="Logo">
+          <img src="{{ assetImage(readConfig('site_logo')) }}" alt="Store Logo">
       </div>
       @endif
       
       @if(readConfig('is_show_site_invoice'))
-      <div class="shop-name">{{ readConfig('site_name') }}</div>
+      <div class="font-bold text-uppercase" style="font-size: 16px; margin-bottom: 3px;">{{ readConfig('site_name') }}</div>
       @endif
       
-      <div class="meta-info">
+      <div class="text-xs">
         @if(readConfig('is_show_address_invoice')){{ readConfig('contact_address') }}<br>@endif
-        @if(readConfig('is_show_phone_invoice')){{ readConfig('contact_phone') }}<br>@endif
+        @if(readConfig('is_show_phone_invoice'))Tel: {{ readConfig('contact_phone') }}<br>@endif
         @if(readConfig('is_show_email_invoice')){{ readConfig('contact_email') }}@endif
       </div>
     </div>
 
-    <div class="dashed-line"></div>
-    
-    <div class="text-center" style="margin: 10px 0;">
-        <span style="border: 1px dashed #000; padding: 6px 12px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">REFUND RECEIPT</span>
-    </div>
-    <div class="dashed-line"></div>
+    <div class="divider"></div>
 
-    <!-- Return Info -->
-    <div class="row" style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px;">
+    <!-- Refund Badge -->
+    <div class="text-center" style="margin: 10px 0;">
+      <span style="border: 2px solid #000; padding: 5px 12px; font-weight: bold; font-size: 13px; text-transform: uppercase;">Revised Refund Receipt</span>
+    </div>
+
+    <!-- Metadata -->
+    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px;">
       <div class="text-left">
-        <strong>Return: #{{ $return->return_number }}</strong><br>
-        Ref Order: #{{ $return->order_id }}<br>
-        User: {{ optional($return->processedBy)->name ?? 'User' }}
+        Return: <strong>#{{ $return->return_number }}</strong><br>
+        Date: {{ $return->created_at->format('d/m/Y h:i A') }}
       </div>
       <div class="text-right">
-        Date: {{ $return->created_at->format('d-M-Y') }}<br>
-        Time: {{ $return->created_at->format('h:i A') }}
+        Ref Inv: #{{ $return->order_id }}<br>
+        Staff: {{ Str::limit(optional($return->processedBy)->name ?? 'Admin', 10) }}
       </div>
     </div>
 
-    <!-- Customer Info -->
-    @if(readConfig('is_show_customer_invoice') && optional(optional($return->order)->customer)->name)
-    <div class="dashed-line"></div>
-    <div class="text-left" style="font-size: 11px;">
-      Client: {{ optional($return->order)->customer->name }}<br>
-      @if(optional($return->order->customer)->phone) Phone: {{ $return->order->customer->phone }} @endif
+    <!-- Customer -->
+    @if($return->order->customer)
+    <div class="divider"></div>
+    <div class="text-left text-sm">
+      <strong>Customer:</strong> {{ $return->order->customer->name }}
     </div>
     @endif
 
-    <div class="dashed-line"></div>
+    <div class="double-divider"></div>
 
-    <!-- Items Table -->
-    <table style="margin-bottom: 5px;">
+    <!-- Items with Strikethrough Logic -->
+    <table>
       <thead>
         <tr>
-          <th class="text-left" style="width: 45%;">Item (Returned)</th>
-          <th class="text-center" style="width: 15%;">Qty</th>
-          <th class="text-right" style="width: 40%;">Refund</th>
+          <th width="45%">Item</th>
+          <th width="15%" class="text-center">Qty</th>
+          <th width="20%" class="text-right">Price</th>
+          <th width="20%" class="text-right">Amt</th>
         </tr>
       </thead>
       <tbody>
-        @foreach ($return->items as $item)
-        <tr>
-          <!-- Strikethrough requested by user -->
-          <td class="text-left" style="text-decoration: line-through;">{{ optional($item->product)->name ?? 'Item' }}</td>
-          <td class="text-center">{{ (float)$item->quantity }}</td>
-          <td class="text-right" style="text-decoration: line-through;">{{ number_format($item->refund_amount, 2) }}</td>
+        @php 
+            $thisReturnItemIds = $return->items->pluck('order_product_id')->toArray(); 
+            $allReturnedQuantities = \App\Models\ReturnItem::whereIn('return_id', $return->order->returns->pluck('id'))
+                ->groupBy('order_product_id')
+                ->selectRaw('order_product_id, sum(quantity) as total_qty')
+                ->pluck('total_qty', 'order_product_id')
+                ->toArray();
+        @endphp
+        @foreach ($return->order->products as $item)
+        @php
+            $isInThisReturn = in_array($item->id, $thisReturnItemIds);
+            $hasAnyReturn = isset($allReturnedQuantities[$item->id]) && $allReturnedQuantities[$item->id] > 0;
+            $unitPrice = $item->quantity > 0 ? ($item->total / $item->quantity) : 0;
+            
+            // Strike through if it's in the current return OR if it was fully returned before
+            $shouldStrike = $isInThisReturn || (isset($allReturnedQuantities[$item->id]) && $allReturnedQuantities[$item->id] >= $item->quantity);
+        @endphp
+        <tr style="{{ $shouldStrike ? 'text-decoration: line-through; color: #888;' : '' }}">
+          <td>
+            <div style="line-height: 1.1;">
+                {{ optional($item->product)->name ?? 'Item' }}
+                @if($isInThisReturn && !$shouldStrike) 
+                    <small>(Partial Return)</small>
+                @endif
+            </div>
+          </td>
+          <td class="text-center">x{{ number_format($item->quantity, 0) }}</td>
+          <td class="text-right">{{ number_format($unitPrice, 0) }}</td>
+          <td class="text-right {{ !$shouldStrike ? 'font-bold' : '' }}">{{ number_format($item->total, 2) }}</td>
         </tr>
         @endforeach
       </tbody>
     </table>
 
-    <div class="dashed-line"></div>
+    <div class="divider"></div>
 
-    <!-- Totals -->
-    <table style="font-weight: bold;">
-      @if(optional($return->order)->total)
+    <!-- Totals Area -->
+    <table class="totals-table">
       <tr>
-        <td class="text-left">Original Total:</td>
-        <td class="text-right" style="text-decoration: line-through;">{{ number_format($return->order->total, 2) }}</td>
-      </tr>
-      @endif
-      
-      <tr>
-        <td class="text-left">Refund Amount:</td>
-        <td class="text-right">-{{ number_format($return->total_refund, 2) }}</td>
+        <td class="text-right" width="60%">Original Total:</td>
+        <td class="text-right font-bold" width="40%">{{ number_format($return->order->total, 2) }}</td>
       </tr>
       
-      @if(optional($return->order)->total)
-      <tr style="font-size: 14px; border-top: 1px dashed #000;">
-        <td class="text-left" style="padding-top: 5px;">NEW TOTAL:</td>
-        <td class="text-right" style="padding-top: 5px;">{{ number_format($return->order->total - $return->total_refund, 2) }}</td>
+      <tr style="color: #d9534f;">
+        <td class="text-right">Total Refunded:</td>
+        <td class="text-right font-bold">-{{ number_format($return->order_total_refunded, 2) }}</td>
+      </tr>
+
+      <tr class="grand-total">
+        <td class="text-left" style="font-size: 14px;">ADJUSTED TOTAL</td>
+        <td class="text-right" style="font-size: 16px;">{{ number_format($return->order->total - $return->order_total_refunded, 2) }}</td>
+      </tr>
+      
+      @if($return->reason)
+      <tr><td colspan="2" style="height: 10px;"></td></tr>
+      <tr>
+          <td colspan="2" class="text-left text-xs" style="padding: 4px; border: 1px dashed #000;">
+              <strong>Return Reason:</strong> {{ $return->reason }}
+          </td>
       </tr>
       @endif
     </table>
-    
-    <!-- Reason -->
-    @if($return->reason)
-    <div class="dashed-line"></div>
-    <div class="text-left" style="font-size: 11px;">
-        <strong>Reason:</strong> {{ $return->reason }}
+
+    <div class="divider"></div>
+
+    <!-- Software Credit (Exactly like POS) -->
+    <div class="text-center text-xs" style="margin-top: 10px; color: #666;">
+      Software by <strong>SINYX</strong><br>
+      Contact: +92 342 9031328
     </div>
-    @endif
-
-    <div class="dashed-line"></div>
-
-    <!-- Footer -->
-    <div class="text-center">
-      <div class="software-credit">
-        <strong>Software by SINYX</strong><br>
-        Contact: +92 342 9031328
-      </div>
-    </div>
-  </div>
-
-  <!-- Action Buttons -->
-  <div class="action-buttons no-print">
-      <button onclick="printReceipt()" class="btn-action btn-print">Print Refund</button>
-      <button onclick="window.close()" class="btn-action btn-close">Close</button>
   </div>
 
   @push('script')
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // SHORTCUTS: Enter=Print, Esc=Close
-      document.addEventListener('keydown', function(e) {
-           if (e.key === 'Enter') {
-               e.preventDefault();
-               printReceipt();
-           } else if (e.key === 'Escape') {
-               e.preventDefault();
-               window.close();
-           }
-      });
+    // Signals parent
+    function notifyParent() {
+        try {
+            if (window.parent && window.parent.finalizeReceiptLoad) { window.parent.finalizeReceiptLoad(); }
+            if (window.parent && window.parent.postMessage) { window.parent.postMessage('receipt-loaded', '*'); }
+        } catch(e) {}
+    }
 
-      try {
-        JsBarcode("#barcode", "{{ $return->return_number }}", {
-          format: "CODE128",
-          width: 1.5,
-          height: 35,
-          displayValue: false,
-          margin: 0
-        });
-      } catch (e) {
-        console.error('Barcode error:', e);
-      }
-    });
+    notifyParent();
+    document.addEventListener('DOMContentLoaded', notifyParent);
+    window.onload = notifyParent;
 
     function printReceipt() {
-        // Safe selection of the print button
-        const btn = document.querySelector('.btn-print');
-        // Store original text
-        const originalText = btn ? btn.innerHTML : 'Print Refund';
-        
-        // Context Bridge Fallback: Check local window first, then opener (parent)
-        const electronApp = window.electron || (window.opener && window.opener.electron);
-        const settings = window.posSettings || (window.opener && window.opener.posSettings) || {};
-        
-        if (electronApp && electronApp.printSilent) {
-             if(btn) {
-                 btn.disabled = true;
-                 btn.innerHTML = '<span class="spinner"></span> Printing...';
-             }
-             
-             const printerName = settings.receiptPrinter ? settings.receiptPrinter : '';
-             
-             electronApp.printSilent(window.location.href, printerName)
-                .then(res => {
-                    if (!res.success) {
-                        alert('Print Error: ' + res.error);
-                    }
-                })
-                .catch(err => {
-                    alert('System Error: ' + err);
-                })
-                .finally(() => {
-                    if(btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    }
-                });
-        } else {
-            console.warn('Electron API not found in popup or opener. Falling back to browser print.');
-            window.print();
-        }
+       if (window.electron && window.electron.printSilent) {
+           window.electron.printSilent(window.location.href);
+           return;
+       }
+       window.print();
     }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            printReceipt();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            try { window.parent.postMessage('close-modal', '*'); } catch(e) {}
+        }
+    });
   </script>
   @endpush
 @endsection
