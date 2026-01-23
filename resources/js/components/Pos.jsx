@@ -17,11 +17,12 @@ import playSound from "../utils/playSound";
 const ProductCard = memo(({ product, onClick, baseUrl }) => (
     <div
         onClick={() => onClick(product.id)}
-        className="col-6 col-md-4 col-lg-3 mb-3 px-2"
+        className="col-6 col-md-4 col-lg-3 mb-4 px-2"
         style={{ cursor: "pointer" }}
     >
-        <div className="card h-100 pos-product-card">
+        <div className="pos-product-card h-100">
             <div className="pos-product-img-wrapper">
+                <span className="pos-stock-badge">{product.quantity}</span>
                 <img
                     src={`${baseUrl}/storage/${product.image}`}
                     alt={product.name}
@@ -33,15 +34,12 @@ const ProductCard = memo(({ product, onClick, baseUrl }) => (
                     }}
                 />
             </div>
-            <div className="card-body p-2 text-center d-flex flex-column justify-content-between">
-                <div>
-                    <h6 className="text-secondary text-sm font-weight-bold mb-1 text-truncate" title={product.name}>
-                        {product.name}
-                    </h6>
-                    <span className="badge badge-light border">Qty: {product.quantity}</span>
+            <div className="pos-product-info text-center">
+                <div className="pos-product-name" title={product.name}>
+                    {product.name}
                 </div>
-                <div className="mt-2 text-dark font-weight-bolder">
-                    Rs. {parseFloat(product?.discounted_price || 0).toFixed(2)}
+                <div className="pos-product-price">
+                    Rs.{parseFloat(product?.discounted_price || 0).toFixed(2)}
                 </div>
             </div>
         </div>

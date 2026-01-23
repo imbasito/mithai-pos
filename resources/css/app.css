@@ -57,3 +57,75 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Refined Product Card - Image Focused */
+.pos-product-card {
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fff;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.pos-product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    border-color: #800000;
+}
+
+.pos-product-img-wrapper {
+    height: 125px;
+    overflow: hidden;
+    background: #ffffff;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.pos-product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.pos-stock-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #800000;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pos-product-info {
+    padding: 8px 10px !important;
+}
+
+.pos-product-name {
+    font-size: 12px;
+    line-height: 1.2;
+    height: 1.25em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-bottom: 2px !important;
+    color: #495057;
+    font-weight: 600;
+}
+
+.pos-product-price {
+    font-size: 14px;
+    color: #800000;
+    font-weight: 800;
+}
+
