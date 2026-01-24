@@ -52,7 +52,28 @@ export default function BarcodeGenerator() {
 
     // Print barcode (and save to history)
     const handlePrint = async () => {
-        if (!barcodeValue) return;
+        // PRO VALIDATION LOGIC
+        if (!label || !label.trim()) {
+             Swal.fire({ icon: 'warning', title: 'Missing Label', text: 'Please enter a product name.' });
+             return;
+        }
+        if (!barcodeValue) {
+             Swal.fire({ icon: 'warning', title: 'Missing Barcode', text: 'Please generate a barcode first.' });
+             return;
+        }
+        
+        // Strict Date Check for Large Labels
+        if (labelSize === 'large') {
+            if (!mfgDate || !expDate) {
+                 Swal.fire({ 
+                     icon: 'error', 
+                     title: 'Dates Required', 
+                     text: 'Professional Large Labels require both MFG and EXP dates.',
+                     confirmButtonColor: '#800000'
+                 });
+                 return;
+            }
+        }
 
         // Open print window first (user gets immediate feedback)
         const url = `/admin/barcode/print?label=${encodeURIComponent(label)}&barcode=${barcodeValue}&mfg=${mfgDate}&exp=${expDate}&size=${labelSize}&price=${showPrice ? price : 0}`;
@@ -62,43 +83,9 @@ export default function BarcodeGenerator() {
             iframe.id = 'print-frame';
             document.body.appendChild(iframe);
         }
-        if (window.electron && window.electron.printSilent) {
-            const tagPrinter = window.posSettings?.tagPrinter || '';
-            
-            // Professional Feedback
-            const btn = document.querySelector('.btn-maroon');
-            const originalContent = btn ? btn.innerHTML : 'Print';
-            if(btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Printing...';
-            }
-
-            window.electron.printSilent(url, tagPrinter)
-                .then(res => {
-                    const success = typeof res === 'object' ? res.success : res;
-                    const error = typeof res === 'object' ? res.error : 'Unknown error';
-
-                    if (success) {
-                        Swal.fire({
-                            toast: true, position: 'top-end', icon: 'success', title: 'Label sent to printer', showConfirmButton: false, timer: 1500
-                        });
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Printing failed', text: error, timer: 3000 });
-                    }
-                })
-                .catch(err => {
-                    console.error('Print error:', err);
-                    iframe.src = url; 
-                })
-                .finally(() => {
-                    if(btn) {
-                         btn.disabled = false;
-                         btn.innerHTML = originalContent;
-                    }
-                });
-        } else {
-            iframe.src = url;
-        }
+        
+        // Use Standard Browser Print (Silent disabled per request)
+        iframe.src = url;
 
         // Save to history (silently in background)
         try {
@@ -108,19 +95,8 @@ export default function BarcodeGenerator() {
             });
             loadHistory(); // Refresh history
         } catch (error) {
-            // Don't show error to user - printing still worked
             console.log("Could not save to history:", error.response?.data?.message || error.message);
         }
-
-        // Success feedback
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: 'Sent to printer',
-            showConfirmButton: false,
-            timer: 1500
-        });
 
         // Clear and generate new for next item
         setLabel("");
@@ -137,29 +113,7 @@ export default function BarcodeGenerator() {
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
         }
-        if (window.electron && window.electron.printSilent) {
-            const tagPrinter = window.posSettings?.tagPrinter || '';
-            window.electron.printSilent(url, tagPrinter)
-                .then(success => {
-                    if (success) {
-                        Swal.fire({
-                            toast: true, position: 'top-end', icon: 'success', title: 'Sent to printer', showConfirmButton: false, timer: 1500
-                        });
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Printing failed', text: 'Please check your printer settings.', timer: 2000 });
-                    }
-                });
-        } else {
-            iframe.src = url;
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Sent to printer',
-                showConfirmButton: false,
-                timer: 1500
-            });
-        }
+        iframe.src = url;
     };
 
     // Delete from history
@@ -194,32 +148,35 @@ export default function BarcodeGenerator() {
     // Format date
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
     return (
         <div className="row">
             {/* Left Panel - Generator */}
             <div className="col-lg-5 col-md-6 mb-4">
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title"><i className="fas fa-barcode mr-2"></i>Generate Barcode</h3>
+                <div className="card shadow-sm border-0 border-radius-15 h-100">
+                    <div className="card-header bg-gradient-maroon py-3">
+                        <h5 className="card-title text-white font-weight-bold mb-0">
+                            <i className="fas fa-barcode mr-2"></i> Generate Barcode
+                        </h5>
                     </div>
-                    <div className="card-body">
+                    <div className="card-body p-4">
                         {/* Preview */}
-                        <div className="text-center mb-4 p-3 border rounded" style={{ backgroundColor: '#FFFDF9', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                        <div className="text-center mb-4 p-3 border rounded shadow-sm" style={{ backgroundColor: '#FFFDF9', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                             <div style={{ 
                                 padding: '10px', 
                                 background: 'white', 
                                 display: 'inline-block', 
                                 textAlign: 'center', 
                                 borderRadius: '8px', 
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                                 width: labelSize === 'large' ? '240px' : '180px', // Visual simulation of size diff
-                                transition: 'all 0.3s ease'
+                                transition: 'all 0.3s ease',
+                                border: '1px solid #f0f0f0'
                             }}>
                                 <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px', color: '#3E2723', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {label || 'Product Label'}
+                                    {label || 'PRODUCT NAME'}
                                 </div>
                                 
                                 {showPrice && price && (
@@ -250,17 +207,18 @@ export default function BarcodeGenerator() {
                                     </div>
                                 )}
                             </div>
-                            <small className="text-muted mt-2">
-                                {labelSize === 'large' ? 'Large Label (50mm) - Includes Dates' : 'Small Label (38mm) - Compact'}
+                            <small className="text-muted mt-2 font-italic">
+                                <i className="fas fa-eye mr-1"></i>
+                                {labelSize === 'large' ? 'Large Label Preview (50mm)' : 'Small Label Preview (38mm)'}
                             </small>
                         </div>
 
                         {/* Inputs */}
                         <div className="form-group">
-                            <label><i className="fas fa-tag mr-1"></i> Product Label</label>
+                            <label className="font-weight-bold"><i className="fas fa-tag mr-1 text-maroon"></i> Product Label <span className="text-danger">*</span></label>
                             <input
                                 type="text"
-                                className="form-control"
+                                className="form-control border-radius-10"
                                 placeholder="e.g. Gulab Jamun 500g"
                                 value={label}
                                 onChange={(e) => setLabel(e.target.value)}
@@ -268,32 +226,45 @@ export default function BarcodeGenerator() {
                         </div>
 
                         <div className="form-group">
-                            <label><i className="fas fa-hashtag mr-1"></i> Barcode</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={barcodeValue}
-                                readOnly
-                                style={{ backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}
-                            />
+                            <label className="font-weight-bold"><i className="fas fa-hashtag mr-1 text-maroon"></i> Barcode</label>
+                            <div className="input-group">
+                                <input
+                                    type="text"
+                                    className="form-control border-radius-10"
+                                    value={barcodeValue}
+                                    readOnly
+                                    style={{ backgroundColor: '#f8f9fa', fontFamily: 'monospace', letterSpacing: '1px' }}
+                                />
+                                <div className="input-group-append">
+                                    <button className="btn btn-outline-secondary" onClick={generateNewBarcode} title="Generate New">
+                                        <i className="fas fa-random"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Dates & Size inputs */}
                         <div className="form-row">
                             <div className="form-group col-md-6">
-                                <label><i className="fas fa-calendar-alt mr-1"></i> MFG Date</label>
+                                <label className="font-weight-bold">
+                                    <i className="fas fa-calendar-alt mr-1 text-muted"></i> MFG Date 
+                                    {labelSize === 'large' && <span className="text-danger">*</span>}
+                                </label>
                                 <input
                                     type="date"
-                                    className="form-control"
+                                    className="form-control border-radius-10"
                                     value={mfgDate}
                                     onChange={(e) => setMfgDate(e.target.value)}
                                 />
                             </div>
                             <div className="form-group col-md-6">
-                                <label><i className="fas fa-calendar-times mr-1"></i> EXP Date</label>
+                                <label className="font-weight-bold">
+                                    <i className="fas fa-calendar-times mr-1 text-muted"></i> EXP Date
+                                    {labelSize === 'large' && <span className="text-danger">*</span>}
+                                </label>
                                 <input
                                     type="date"
-                                    className="form-control"
+                                    className="form-control border-radius-10"
                                     value={expDate}
                                     onChange={(e) => setExpDate(e.target.value)}
                                 />
@@ -301,9 +272,9 @@ export default function BarcodeGenerator() {
                         </div>
 
                         <div className="form-group">
-                            <label><i className="fas fa-ruler-combined mr-1"></i> Label Size</label>
+                            <label className="font-weight-bold"><i className="fas fa-ruler-combined mr-1 text-muted"></i> Label Size</label>
                             <select 
-                                className="form-control"
+                                className="form-control border-radius-10 custom-select"
                                 value={labelSize} 
                                 onChange={(e) => setLabelSize(e.target.value)}
                             >
@@ -312,23 +283,25 @@ export default function BarcodeGenerator() {
                             </select>
                         </div>
 
-                        <div className="form-group form-check">
-                            <input 
-                                type="checkbox" 
-                                className="form-check-input" 
-                                id="showPriceCheck"
-                                checked={showPrice}
-                                onChange={(e) => setShowPrice(e.target.checked)}
-                            />
-                            <label className="form-check-label" htmlFor="showPriceCheck">Show Price on Label</label>
+                        <div className="form-group">
+                            <div className="custom-control custom-switch">
+                                <input 
+                                    type="checkbox" 
+                                    className="custom-control-input" 
+                                    id="showPriceCheck"
+                                    checked={showPrice}
+                                    onChange={(e) => setShowPrice(e.target.checked)}
+                                />
+                                <label className="custom-control-label font-weight-bold" htmlFor="showPriceCheck">Show Price on Label</label>
+                            </div>
                         </div>
                         
                         {showPrice && (
-                            <div className="form-group">
-                                <label><i className="fas fa-tag mr-1"></i> Price (Rs.)</label>
+                            <div className="form-group animate__animated animate__fadeIn">
+                                <label className="font-weight-bold"><i className="fas fa-coins mr-1 text-maroon"></i> Price (Rs.)</label>
                                 <input
                                     type="number"
-                                    className="form-control"
+                                    className="form-control border-radius-10"
                                     placeholder="Enter Price"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
@@ -337,27 +310,13 @@ export default function BarcodeGenerator() {
                         )}
 
                         {/* Buttons */}
-                        <div className="row mt-3">
-                            <div className="col-4">
+                        <div className="row mt-4">
+                            <div className="col-12">
                                 <button
-                                    className="btn btn-secondary btn-block"
-                                    onClick={() => { 
-                                        setLabel(""); 
-                                        setMfgDate("");
-                                        setExpDate("");
-                                        generateNewBarcode(); 
-                                    }}
-                                    title="Generate new barcode"
-                                >
-                                    <i className="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
-                            <div className="col-8">
-                                <button
-                                    className="btn btn-maroon btn-block"
+                                    className="btn btn-maroon btn-block py-3 font-weight-bold shadow-sm border-radius-10 transition-hover"
                                     onClick={handlePrint}
                                 >
-                                    <i className="fas fa-print mr-2"></i> Print
+                                    <i className="fas fa-print mr-2"></i> Print Label
                                 </button>
                             </div>
                         </div>
@@ -367,14 +326,14 @@ export default function BarcodeGenerator() {
 
             {/* Right Panel - History */}
             <div className="col-lg-7 col-md-6">
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title"><i className="fas fa-history mr-2"></i>Print History</h3>
-                        <div className="card-tools">
-                            <button className="btn btn-tool" onClick={() => loadHistory(currentPage)} title="Refresh">
-                                <i className="fas fa-sync-alt"></i>
-                            </button>
-                        </div>
+                <div className="card shadow-sm border-0 border-radius-15 h-100">
+                    <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h5 className="card-title text-dark font-weight-bold mb-0">
+                            <i className="fas fa-history mr-2 text-secondary"></i> Print History
+                        </h5>
+                        <button className="btn btn-light btn-sm shadow-sm" onClick={() => loadHistory(currentPage)} title="Refresh List">
+                            <i className="fas fa-sync-alt text-maroon"></i>
+                        </button>
                     </div>
                     <div className="card-body p-0">
                         {loading ? (
@@ -382,63 +341,67 @@ export default function BarcodeGenerator() {
                                 <i className="fas fa-spinner fa-spin fa-2x"></i>
                             </div>
                         ) : history.length === 0 ? (
-                            <div className="text-center py-4 text-muted">
-                                <i className="fas fa-inbox fa-3x mb-2"></i>
+                            <div className="text-center py-5 text-muted">
+                                <i className="fas fa-inbox fa-3x mb-3 text-light-gray"></i>
                                 <p className="mb-0">No barcodes printed yet</p>
-                                <small>Printed barcodes will appear here</small>
+                                <small>Your recent print jobs will appear here.</small>
                             </div>
                         ) : (
-                            <table className="table table-hover table-sm mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Label</th>
-                                        <th>Barcode</th>
-                                        <th>Date</th>
-                                        <th style={{ width: '90px' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {history.map((item) => (
-                                        <tr key={item.id}>
-                                            <td>{item.label || <span className="text-muted">-</span>}</td>
-                                            <td><code style={{ fontSize: '11px' }}>{item.barcode}</code></td>
-                                            <td><small>{formatDate(item.created_at)}</small></td>
-                                            <td>
-                                                <button
-                                                    className="btn btn-xs btn-info mr-1"
-                                                    onClick={() => handleReprint(item)}
-                                                    title="Reprint"
-                                                >
-                                                    <i className="fas fa-print"></i>
-                                                </button>
-                                                <button
-                                                    className="btn btn-xs btn-danger"
-                                                    onClick={() => handleDelete(item.id)}
-                                                    title="Delete"
-                                                >
-                                                    <i className="fas fa-trash"></i>
-                                                </button>
-                                            </td>
+                            <div className="table-responsive">
+                                <table className="table table-hover mb-0">
+                                    <thead className="bg-light">
+                                        <tr>
+                                            <th className="border-0 pl-4 py-3">Label</th>
+                                            <th className="border-0 py-3">Barcode</th>
+                                            <th className="border-0 py-3">Date</th>
+                                            <th className="border-0 py-3 text-right pr-4" style={{ width: '120px' }}>Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {history.map((item) => (
+                                            <tr key={item.id} style={{ height: '60px' }}>
+                                                <td className="pl-4 align-middle font-weight-bold">{item.label || <span className="text-muted">-</span>}</td>
+                                                <td className="align-middle"><code className="p-1 rounded bg-light border">{item.barcode}</code></td>
+                                                <td className="align-middle text-muted small">{formatDate(item.created_at)}</td>
+                                                <td className="text-right pr-4 align-middle">
+                                                    <button
+                                                        className="btn btn-sm btn-info shadow-sm mr-2"
+                                                        onClick={() => handleReprint(item)}
+                                                        title="Reprint Label"
+                                                        style={{ width: '32px', height: '32px', padding: 0, borderRadius: '50%' }}
+                                                    >
+                                                        <i className="fas fa-print" style={{ fontSize: '12px' }}></i>
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-danger shadow-sm"
+                                                        onClick={() => handleDelete(item.id)}
+                                                        title="Delete Record"
+                                                        style={{ width: '32px', height: '32px', padding: 0, borderRadius: '50%' }}
+                                                    >
+                                                        <i className="fas fa-trash" style={{ fontSize: '12px' }}></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </div>
                     {/* Pagination */}
                     {lastPage > 1 && (
-                        <div className="card-footer clearfix py-2">
-                            <ul className="pagination pagination-sm m-0 float-right">
+                        <div className="card-footer bg-white border-top-0 py-3">
+                            <ul className="pagination justify-content-center m-0">
                                 <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                    <button className="page-link" onClick={() => loadHistory(currentPage - 1)}>«</button>
+                                    <button className="page-link border-radius-10 mr-1" onClick={() => loadHistory(currentPage - 1)}>«</button>
                                 </li>
                                 {[...Array(Math.min(lastPage, 5))].map((_, i) => (
                                     <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                        <button className="page-link" onClick={() => loadHistory(i + 1)}>{i + 1}</button>
+                                        <button className="page-link border-radius-10 mx-1" onClick={() => loadHistory(i + 1)}>{i + 1}</button>
                                     </li>
                                 ))}
                                 <li className={`page-item ${currentPage === lastPage ? 'disabled' : ''}`}>
-                                    <button className="page-link" onClick={() => loadHistory(currentPage + 1)}>»</button>
+                                    <button className="page-link border-radius-10 ml-1" onClick={() => loadHistory(currentPage + 1)}>»</button>
                                 </li>
                             </ul>
                         </div>

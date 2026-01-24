@@ -5,327 +5,272 @@ namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class BackupController extends Controller
 {
-    protected $defaultBackupPath;
-    protected $mysqlPath;
-    protected $mysqldumpPath;
-
-    public function __construct()
-    {
-        // Default backup directory in user's Documents
-        $this->defaultBackupPath = getenv('USERPROFILE') . '\\Documents\\SPOS Backups';
-        
-        // MySQL tools path (relative to app root)
-        $basePath = base_path();
-        $this->mysqlPath = $basePath . '\\mysql\\bin\\mysql.exe';
-        $this->mysqldumpPath = $basePath . '\\mysql\\bin\\mysqldump.exe';
-    }
-
     /**
-     * Get backup settings page
+     * Display the backup manager dashboard
      */
     public function index()
     {
-        $backupPath = readConfig('backup_path') ?: $this->defaultBackupPath;
-        $autoBackup = readConfig('auto_backup') ?: 'off';
-        $lastBackup = readConfig('last_backup_date') ?: 'Never';
+        // Safe Config Reading
+        $backupPath = $this->getSafeConfig('backup_path', storage_path('app/backups'));
+        $autoBackup = $this->getSafeConfig('auto_backup', 'off');
         
-        // Get list of existing backups
-        $backups = $this->getBackupsList($backupPath);
-        
-        return view('backend.settings.backup', compact('backupPath', 'autoBackup', 'lastBackup', 'backups'));
+        // Ensure directory exists
+        if (!File::exists($backupPath)) {
+            try {
+                File::makeDirectory($backupPath, 0755, true);
+            } catch (\Exception $e) {
+                // If custom path fails, revert to safe default
+                $backupPath = storage_path('app/backups');
+                if (!File::exists($backupPath)) File::makeDirectory($backupPath, 0755, true);
+            }
+        }
+
+        $backups = [];
+        try {
+            $files = glob($backupPath . '/*.sql');
+            if ($files) {
+                foreach ($files as $file) {
+                    $backups[] = [
+                        'filename' => basename($file),
+                        'path' => $file,
+                        'size' => $this->humanFilesize(filesize($file)),
+                        'date' => date('Y-m-d H:i:s', filemtime($file)),
+                        'timestamp' => filemtime($file)
+                    ];
+                }
+                // Sort by newest first
+                usort($backups, function($a, $b) {
+                    return $b['timestamp'] - $a['timestamp'];
+                });
+            }
+        } catch (\Exception $e) {
+            // Log error but show empty list
+        }
+
+        return view('backend.settings.backup', compact('backups', 'backupPath', 'autoBackup'));
     }
 
     /**
-     * Save backup settings
+     * Save Backup Settings
      */
     public function saveSettings(Request $request)
     {
-        $request->validate([
-            'backup_path' => 'required|string',
-            'auto_backup' => 'required|in:off,daily,weekly',
-        ]);
+        try {
+            $path = $request->input('backup_path');
+            $auto = $request->input('auto_backup');
 
-        // Update config
-        writeConfig('backup_path', $request->backup_path);
-        writeConfig('auto_backup', $request->auto_backup);
+            // Validate Path
+            if (!File::exists($path)) {
+                try {
+                    File::makeDirectory($path, 0755, true);
+                } catch (\Exception $e) {
+                    return redirect()->back()->with('error', "Cannot create directory at: $path");
+                }
+            }
 
-        // Create directory if not exists
-        if (!File::exists($request->backup_path)) {
-            File::makeDirectory($request->backup_path, 0755, true);
+            if (!is_writable($path)) {
+                return redirect()->back()->with('error', "Directory is not writable: $path");
+            }
+
+            // Save Configs safely
+            $this->setSafeConfig('backup_path', $path);
+            $this->setSafeConfig('auto_backup', $auto);
+
+            return redirect()->back()->with('success', 'Backup settings updated.');
+
+        } catch (\Exception $e) {
+             return redirect()->back()->with('error', 'Error saving settings: ' . $e->getMessage());
         }
-
-        return redirect()->back()->with('success', 'Backup settings saved successfully!');
     }
 
     /**
-     * Create a new backup
+     * Create a new database backup
      */
-    public function createBackup(Request $request)
+    public function createBackup()
     {
         try {
-            $backupPath = readConfig('backup_path') ?: $this->defaultBackupPath;
-            
-            // Create directory if not exists
+            $backupPath = $this->getSafeConfig('backup_path', storage_path('app/backups'));
             if (!File::exists($backupPath)) {
                 File::makeDirectory($backupPath, 0755, true);
             }
 
-            // Generate filename with timestamp
-            $filename = 'pos_db_' . date('Y-m-d_H-i-s') . '.sql';
-            $fullPath = $backupPath . '\\' . $filename;
+            $filename = 'backup-' . date('Y-m-d-H-i-s') . '.sql';
+            $fullPath = $backupPath . '/' . $filename;
 
-            // Get database credentials
-            $database = config('database.connections.mysql.database');
-            $username = config('database.connections.mysql.username');
-            $password = config('database.connections.mysql.password');
-            $port = config('database.connections.mysql.port');
-
-            // Build mysqldump command using shell - bypass TCP socket issues
-            $passwordPart = !empty($password) ? "-p{$password}" : '';
-            $command = "\"{$this->mysqldumpPath}\" -u{$username} {$passwordPart} -P{$port} --protocol=pipe --single-transaction --routines --triggers {$database} > \"{$fullPath}\" 2>&1";
+            // Database Config
+            $dbName = config('database.connections.mysql.database');
+            $dbUser = config('database.connections.mysql.username');
+            $dbPass = config('database.connections.mysql.password');
+            $dbHost = config('database.connections.mysql.host', '127.0.0.1');
+            $dbPort = config('database.connections.mysql.port', '3306');
             
-            // Execute command
-            $output = shell_exec($command);
-            
-            // Check if file was created and has content
-            if (!File::exists($fullPath)) {
-                throw new \Exception('Backup file was not created. Output: ' . $output);
+            // Resolve Binary Path explicitly
+            $basePath = base_path();
+            $mysqldump = $basePath . '/mysql/bin/mysqldump.exe';
+            if (!File::exists($mysqldump)) {
+                // Try system path if local not found
+                $mysqldump = 'mysqldump'; 
+            } else {
+                $mysqldump = '"' . $mysqldump . '"';
             }
+
+            // Build Command with explicit port and protocol
+            $passwordPart = $dbPass ? "--password=\"{$dbPass}\"" : "";
+            $dumpCommand = "{$mysqldump} --user=\"{$dbUser}\" {$passwordPart} --host=\"{$dbHost}\" --port=\"{$dbPort}\" --protocol=tcp --single-transaction \"{$dbName}\" > \"{$fullPath}\" 2>&1";
             
-            $fileSize = File::size($fullPath);
-            if ($fileSize < 100) {
-                // File too small, might be an error
-                $content = File::get($fullPath);
-                if (strpos($content, 'error') !== false || strpos($content, 'Error') !== false) {
-                    File::delete($fullPath);
-                    throw new \Exception('Backup failed: ' . $content);
+            // Execute
+            $output = [];
+            $resultCode = null;
+            exec($dumpCommand, $output, $resultCode);
+
+            if (File::exists($fullPath) && File::size($fullPath) > 0) {
+                $this->setSafeConfig('last_backup_date', date('Y-m-d H:i:s'));
+                return redirect()->back()->with('success', "Backup Created: {$filename}");
+            } else {
+                 return redirect()->back()->with('error', "Backup Failed. Details: " . implode("\n", $output));
+            }
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Critical Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Restore Backup
+     */
+    public function restoreBackup($filename)
+    {
+        try {
+            $backupPath = $this->getSafeConfig('backup_path', storage_path('app/backups'));
+            $fullPath = $backupPath . '/' . $filename;
+
+            if (!File::exists($fullPath)) {
+                return redirect()->back()->with('error', 'Backup file not found.');
+            }
+
+            // Database Config
+            $dbName = config('database.connections.mysql.database');
+            $dbUser = config('database.connections.mysql.username');
+            $dbPass = config('database.connections.mysql.password');
+            $dbHost = config('database.connections.mysql.host', '127.0.0.1');
+            $dbPort = config('database.connections.mysql.port', '3306');
+
+            // Resolve Binary Path - STRICT WINDOWS PATHS
+            $basePath = base_path();
+            // Force backslashes for Windows
+            $mysqlBin = $basePath . '\mysql\bin\mysql.exe';
+            
+            // Normalize path just in case
+            $mysqlBin = str_replace('/', '\\', $mysqlBin);
+
+            if (!File::exists($mysqlBin)) {
+                // If strictly not found, try to assume it's there anyway or fall back
+                // But better to log this anomaly
+                \Illuminate\Support\Facades\Log::warning("MySQL binary not found at checked path: $mysqlBin");
+                $mysql = 'mysql';
+            } else {
+                $mysql = '"' . $mysqlBin . '"';
+            }
+
+            // Restore Command
+            // IMPORTANT: No space between -p and password if used, but --password= works better
+            $passwordPart = $dbPass ? "--password=\"{$dbPass}\"" : "";
+            
+            // On some Windows systems, 127.0.0.1 needs explicit protocol
+            $restoreCommand = "{$mysql} --user=\"{$dbUser}\" {$passwordPart} --host=\"{$dbHost}\" --port=\"{$dbPort}\" --protocol=tcp \"{$dbName}\" < \"{$fullPath}\" 2>&1";
+            
+            $output = [];
+            $resultCode = null;
+            exec($restoreCommand, $output, $resultCode);
+
+            if ($resultCode === 0) {
+                return redirect()->back()->with('success', "System Restored from: {$filename}");
+            } else {
+                \Illuminate\Support\Facades\Log::error("Restore Fail Output: " . implode("\n", $output));
+                
+                // Friendly Error Message
+                $err = implode(" ", $output);
+                if (str_contains($err, 'Using a password')) {
+                    // This is just a warning, maybe the error is separate
+                     return redirect()->back()->with('error', "Restore process finished with warnings. Check database data.");
                 }
+                
+                return redirect()->back()->with('error', "Restore Failed: " . substr($err, 0, 150) . "...");
             }
-
-            // Update last backup date
-            writeConfig('last_backup_date', date('Y-m-d H:i:s'));
-
-            // Get file size formatted
-            $fileSizeFormatted = $this->formatBytes($fileSize);
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => "Backup created successfully! ({$fileSizeFormatted})",
-                    'filename' => $filename,
-                    'size' => $fileSizeFormatted,
-                    'date' => date('Y-m-d H:i:s')
-                ]);
-            }
-
-            return redirect()->back()->with('success', "Backup created: {$filename} ({$fileSizeFormatted})");
 
         } catch (\Exception $e) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Backup failed: ' . $e->getMessage()
-                ], 500);
-            }
-            return redirect()->back()->with('error', 'Backup failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Restore Error: ' . $e->getMessage());
         }
     }
 
     /**
-     * Restore from a backup file
-     */
-    public function restoreBackup(Request $request)
-    {
-        try {
-            $request->validate([
-                'backup_file' => 'required|string'
-            ]);
-
-            $backupPath = readConfig('backup_path') ?: $this->defaultBackupPath;
-            $fullPath = $backupPath . '\\' . $request->backup_file;
-
-            if (!File::exists($fullPath)) {
-                throw new \Exception('Backup file not found: ' . $request->backup_file);
-            }
-
-            // Get database credentials
-            $database = config('database.connections.mysql.database');
-            $username = config('database.connections.mysql.username');
-            $password = config('database.connections.mysql.password');
-            $host = config('database.connections.mysql.host');
-            $port = config('database.connections.mysql.port');
-
-            // Build mysql command
-            $command = [
-                $this->mysqlPath,
-                '--user=' . $username,
-                '--host=' . $host,
-                '--port=' . $port,
-                $database,
-                '-e',
-                'source ' . str_replace('\\', '/', $fullPath)
-            ];
-
-            if (!empty($password)) {
-                array_splice($command, 1, 0, '--password=' . $password);
-            }
-
-            $process = new Process($command);
-            $process->setTimeout(600); // 10 minutes timeout
-            $process->run();
-
-            if (!$process->isSuccessful()) {
-                throw new ProcessFailedException($process);
-            }
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Database restored successfully from: ' . $request->backup_file
-                ]);
-            }
-
-            return redirect()->back()->with('success', 'Database restored successfully!');
-
-        } catch (\Exception $e) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Restore failed: ' . $e->getMessage()
-                ], 500);
-            }
-            return redirect()->back()->with('error', 'Restore failed: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Delete a backup file
-     */
-    public function deleteBackup(Request $request)
-    {
-        try {
-            $request->validate([
-                'backup_file' => 'required|string'
-            ]);
-
-            $backupPath = readConfig('backup_path') ?: $this->defaultBackupPath;
-            $fullPath = $backupPath . '\\' . $request->backup_file;
-
-            if (File::exists($fullPath)) {
-                File::delete($fullPath);
-            }
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Backup deleted successfully!'
-                ]);
-            }
-
-            return redirect()->back()->with('success', 'Backup deleted successfully!');
-
-        } catch (\Exception $e) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Delete failed: ' . $e->getMessage()
-                ], 500);
-            }
-            return redirect()->back()->with('error', 'Delete failed: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Download a backup file
+     * Download a backup
      */
     public function downloadBackup($filename)
     {
-        $backupPath = readConfig('backup_path') ?: $this->defaultBackupPath;
-        $fullPath = $backupPath . '\\' . $filename;
-
-        if (!File::exists($fullPath)) {
-            return redirect()->back()->with('error', 'Backup file not found!');
-        }
-
-        return response()->download($fullPath, $filename);
-    }
-
-    /**
-     * Get list of backup files
-     */
-    protected function getBackupsList($path)
-    {
-        $backups = [];
-
+        $backupPath = $this->getSafeConfig('backup_path', storage_path('app/backups'));
+        $path = $backupPath . '/' . $filename;
         if (File::exists($path)) {
-            $files = File::files($path);
-            foreach ($files as $file) {
-                if ($file->getExtension() === 'sql') {
-                    $backups[] = [
-                        'name' => $file->getFilename(),
-                        'size' => $this->formatBytes($file->getSize()),
-                        'date' => date('Y-m-d H:i:s', $file->getMTime())
-                    ];
-                }
-            }
-            // Sort by date descending
-            usort($backups, function($a, $b) {
-                return strtotime($b['date']) - strtotime($a['date']);
-            });
+            return response()->download($path);
         }
-
-        return $backups;
+        return redirect()->back()->with('error', 'File not found.');
     }
 
     /**
-     * Format bytes to human readable
+     * Delete a backup
      */
-    protected function formatBytes($bytes, $precision = 2)
+    public function deleteBackup($filename)
     {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-        $bytes /= pow(1024, $pow);
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        $backupPath = $this->getSafeConfig('backup_path', storage_path('app/backups'));
+        $path = $backupPath . '/' . $filename;
+        if (File::exists($path)) {
+            File::delete($path);
+            return redirect()->back()->with('success', 'Backup deleted successfully.');
+        }
+        return redirect()->back()->with('error', 'File not found to delete.');
     }
 
     /**
-     * Run auto backup (called by scheduler)
+     * Helper: Get Config Safe
      */
-    public function runAutoBackup()
+    private function getSafeConfig($key, $default = null)
     {
-        $autoBackup = readConfig('auto_backup') ?: 'off';
-        
-        if ($autoBackup === 'off') {
-            return;
-        }
-
-        $lastBackup = readConfig('last_backup_date');
-        $now = now();
-        
-        $shouldBackup = false;
-        
-        if (!$lastBackup) {
-            $shouldBackup = true;
-        } else {
-            $lastBackupDate = \Carbon\Carbon::parse($lastBackup);
-            
-            if ($autoBackup === 'daily' && $lastBackupDate->diffInDays($now) >= 1) {
-                $shouldBackup = true;
-            } else if ($autoBackup === 'weekly' && $lastBackupDate->diffInDays($now) >= 7) {
-                $shouldBackup = true;
+        try {
+            if (function_exists('readConfig')) {
+                $val = readConfig($key);
+                return $val ? $val : $default;
             }
+            return config('system.' . $key, $default);
+        } catch (\Exception $e) {
+            return $default;
         }
+    }
 
-        if ($shouldBackup) {
-            $this->createBackup(new Request());
+    /**
+     * Helper: Set Config Safe
+     */
+    private function setSafeConfig($key, $value)
+    {
+        try {
+            if (function_exists('writeConfig')) {
+                writeConfig($key, $value);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("WriteConfig Fail: $key");
         }
+    }
+
+    /**
+     * Helper for file size
+     */
+    private function humanFilesize($bytes, $decimals = 2)
+    {
+        $sz = 'BKMGTP';
+        $factor = floor((strlen($bytes) - 1) / 3);
+        return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
     }
 }

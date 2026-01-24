@@ -12,4 +12,5 @@ contextBridge.exposeInMainWorld('updater', {
 contextBridge.exposeInMainWorld('electron', {
     printSilent: (url, printerName = null) => ipcRenderer.invoke('print:silent', { url, printerName }),
     getPrinters: () => ipcRenderer.invoke('print:get-printers'),
+    openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
 });

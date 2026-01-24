@@ -1,281 +1,200 @@
 @extends('backend.master')
 
-@section('title', 'Backup & Restore')
+@section('title', 'Backup Manager')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-database mr-2"></i>Backup & Restore
-                    </h3>
+<div class="row animate__animated animate__fadeIn">
+    <div class="col-md-12">
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="fas fa-exclamation-triangle mr-2"></i> {{ session('error') }}
+            </div>
+        @endif
+    </div>
+
+    <!-- Create & Settings Section -->
+    <div class="col-md-5">
+        <div class="row">
+            {{-- Manual Backup Card --}}
+            <div class="col-12 mb-4">
+                <div class="card shadow-sm border-0 border-radius-15 h-100">
+                    <div class="card-header bg-gradient-maroon py-3">
+                        <h5 class="card-title text-white font-weight-bold mb-0">
+                            <i class="fas fa-magic mr-2"></i> Actions
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                         <div class="d-flex align-items-center justify-content-center mb-4">
+                             <div class="icon-circle bg-light text-maroon shadow-sm mr-3" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-hdd fa-2x"></i>
+                            </div>
+                            <div class="text-left">
+                                <h5 class="font-weight-bold mb-1">Backup Database</h5>
+                                <p class="text-muted mb-0 small">Create a safe snapshot now.</p>
+                            </div>
+                        </div>
+                        
+                        <form action="{{ route('backend.admin.settings.backup.create') }}" method="post" class="w-100">
+                            @csrf
+                            <button type="submit" class="btn btn-maroon btn-block py-2 shadow-sm font-weight-bold border-radius-10">
+                                <i class="fas fa-plus-circle mr-2"></i> Create New Backup
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show">
-                            <button type="button" class="close" data-dismiss="alert">&times;</button>
-                            {{ session('success') }}
-                        </div>
-                    @endif
-                    @if(session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show">
-                            <button type="button" class="close" data-dismiss="alert">&times;</button>
-                            {{ session('error') }}
-                        </div>
-                    @endif
+            </div>
 
-                    <div class="row">
-                        <!-- Backup Settings -->
-                        <div class="col-md-4">
-                            <div class="card card-outline card-primary">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-cog mr-2"></i>Settings
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <form action="{{ route('backend.admin.settings.backup.save') }}" method="POST">
-                                        @csrf
-                                        <div class="form-group">
-                                            <label for="backup_path">
-                                                <i class="fas fa-folder mr-1"></i>Backup Directory
-                                            </label>
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="backup_path" name="backup_path" 
-                                                    value="{{ $backupPath }}" placeholder="C:\Users\...\Documents\Backups">
-                                                <div class="input-group-append">
-                                                    <button type="button" class="btn btn-secondary" id="browseBtn" title="Browse for folder">
-                                                        <i class="fas fa-folder-open"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">Where backup files will be saved</small>
-                                            <!-- Hidden file input for folder selection -->
-                                            <input type="file" id="folderPicker" webkitdirectory directory style="display: none;">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="auto_backup">
-                                                <i class="fas fa-clock mr-1"></i>Auto Backup
-                                            </label>
-                                            <select class="form-control" id="auto_backup" name="auto_backup">
-                                                <option value="off" {{ $autoBackup == 'off' ? 'selected' : '' }}>Off</option>
-                                                <option value="daily" {{ $autoBackup == 'daily' ? 'selected' : '' }}>Daily</option>
-                                                <option value="weekly" {{ $autoBackup == 'weekly' ? 'selected' : '' }}>Weekly</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group mb-0">
-                                            <p class="mb-1"><strong>Last Backup:</strong></p>
-                                            <p class="text-muted mb-0">{{ $lastBackup }}</p>
-                                        </div>
-                                        <hr>
-                                        <button type="submit" class="btn btn-primary btn-block">
-                                            <i class="fas fa-save mr-1"></i>Save Settings
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <!-- Quick Actions -->
-                            <div class="card card-outline card-success mt-3">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-bolt mr-2"></i>Quick Actions
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <form action="{{ route('backend.admin.settings.backup.create') }}" method="POST" id="backupForm">
-                                        @csrf
-                                        <button type="submit" class="btn btn-success btn-block btn-lg" id="createBackupBtn">
-                                            <i class="fas fa-download mr-2"></i>Create Backup Now
-                                        </button>
-                                    </form>
-                                    <p class="text-muted text-center mt-2 mb-0">
-                                        <small>Creates a complete database backup</small>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Backup List -->
-                        <div class="col-md-8">
-                            <div class="card card-outline card-info">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-list mr-2"></i>Available Backups
-                                    </h5>
-                                </div>
-                                <div class="card-body p-0">
-                                    @if(count($backups) > 0)
-                                    <div class="table-responsive">
-                                        <table class="table table-hover mb-0">
-                                            <thead class="thead-light">
-                                                <tr>
-                                                    <th>Filename</th>
-                                                    <th>Size</th>
-                                                    <th>Date</th>
-                                                    <th class="text-center">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($backups as $backup)
-                                                <tr>
-                                                    <td>
-                                                        <i class="fas fa-file-archive text-muted mr-2"></i>
-                                                        {{ $backup['name'] }}
-                                                    </td>
-                                                    <td>{{ $backup['size'] }}</td>
-                                                    <td>{{ $backup['date'] }}</td>
-                                                    <td class="text-center">
-                                                        <div class="btn-group btn-group-sm">
-                                                            <a href="{{ route('backend.admin.settings.backup.download', $backup['name']) }}" 
-                                                               class="btn btn-info" title="Download">
-                                                                <i class="fas fa-download"></i>
-                                                            </a>
-                                                            <button type="button" class="btn btn-warning restore-btn" 
-                                                                    data-file="{{ $backup['name'] }}" title="Restore">
-                                                                <i class="fas fa-undo"></i>
-                                                            </button>
-                                                            <button type="button" class="btn btn-danger delete-btn" 
-                                                                    data-file="{{ $backup['name'] }}" title="Delete">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
+            {{-- Settings Card --}}
+            <div class="col-12">
+                 <div class="card shadow-sm border-0 border-radius-15 h-100">
+                    <div class="card-header bg-dark py-3">
+                        <h5 class="card-title text-white font-weight-bold mb-0">
+                            <i class="fas fa-cogs mr-2"></i> Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form action="{{ route('backend.admin.settings.backup.save') }}" method="post">
+                            @csrf
+                            <div class="form-group">
+                                <label class="font-weight-bold">Backup Directory Path</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text bg-light border-0"><i class="fas fa-folder text-secondary"></i></span>
                                     </div>
-                                    @else
-                                    <div class="text-center py-5">
-                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                        <p class="text-muted">No backups found</p>
-                                        <p class="text-muted small">Click "Create Backup Now" to create your first backup</p>
+                                    <input type="text" name="backup_path" id="backup_path_input" class="form-control" value="{{ $backupPath }}" placeholder="e.g. D:/Backups/SPOS">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-secondary border-0" id="btn-browse-dir" title="Browse Directory">
+                                            <i class="fas fa-folder-open"></i> Browse
+                                        </button>
                                     </div>
-                                    @endif
                                 </div>
+                                <small class="text-muted">Absolute path to store files.</small>
                             </div>
 
-                            <!-- Warning -->
-                            <div class="alert alert-warning mt-3">
-                                <i class="fas fa-exclamation-triangle mr-2"></i>
-                                <strong>Warning:</strong> Restoring a backup will replace all current data. Make sure to create a backup of current data before restoring.
+                            <script>
+                                document.addEventListener('DOMContentLoaded', () => {
+                                    const btnBrowse = document.getElementById('btn-browse-dir');
+                                    const inputPath = document.getElementById('backup_path_input');
+                                    
+                                    if (window.electron && window.electron.openDirectory) {
+                                        btnBrowse.addEventListener('click', async () => {
+                                            try {
+                                                const path = await window.electron.openDirectory();
+                                                if (path) {
+                                                    inputPath.value = path;
+                                                }
+                                            } catch (e) {
+                                                console.error('Directory select failed', e);
+                                            }
+                                        });
+                                    } else {
+                                        btnBrowse.style.display = 'none'; // Hide if not in Electron
+                                    }
+                                });
+                            </script>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold">Auto Backup Frequency</label>
+                                <select name="auto_backup" class="form-control custom-select">
+                                    <option value="off" {{ $autoBackup == 'off' ? 'selected' : '' }}>Disabled</option>
+                                    <option value="daily" {{ $autoBackup == 'daily' ? 'selected' : '' }}>Daily (Once a day)</option>
+                                    <option value="weekly" {{ $autoBackup == 'weekly' ? 'selected' : '' }}>Weekly (Every Sunday)</option>
+                                </select>
                             </div>
-                        </div>
+
+                            <button type="submit" class="btn btn-secondary btn-block shadow-sm font-weight-bold">
+                                <i class="fas fa-save mr-2"></i> Save Settings
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Restore Confirmation Modal -->
-<div class="modal fade" id="restoreModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle mr-2"></i>Confirm Restore</h5>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
+    <!-- Backup List Section -->
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0 border-radius-15 h-100">
+             <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
+                <h5 class="card-title text-dark font-weight-bold mb-0">
+                    <i class="fas fa-history mr-2 text-secondary"></i> Backup History
+                </h5>
+                <span class="badge badge-light border ml-auto">{{ count($backups) }} Files</span>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to restore this backup?</p>
-                <p class="font-weight-bold" id="restoreFileName"></p>
-                <p class="text-danger"><strong>Warning:</strong> This will replace ALL current data!</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <form action="{{ route('backend.admin.settings.backup.restore') }}" method="POST" id="restoreForm">
-                    @csrf
-                    <input type="hidden" name="backup_file" id="restoreFileInput">
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-undo mr-1"></i>Yes, Restore
-                    </button>
-                </form>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="pl-4 border-0">Filename</th>
+                            <th class="border-0">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($backups as $backup)
+                        <tr>
+                            <td class="pl-4 align-middle">
+                                <div class="font-weight-bold text-dark">{{ $backup['filename'] }}</div>
+                                <div class="small text-muted">
+                                    <i class="far fa-clock mr-1"></i> {{ $backup['date'] }} 
+                                    <span class="mx-1">•</span> 
+                                    <i class="fas fa-weight-hanging mr-1"></i> {{ $backup['size'] }}
+                                </div>
+                            </td>
+                            <td class="text-right pr-4 align-middle">
+                                <div class="btn-group">
+                                    <a href="{{ route('backend.admin.settings.backup.restore', $backup['filename']) }}" onclick="return confirm('WARNING: This will overwrite your current database. Are you sure?')" class="btn btn-sm btn-warning shadow-sm font-weight-bold text-dark px-3" title="Restore Database">
+                                        <i class="fas fa-undo mr-1"></i> Restore
+                                    </a>
+                                    <a href="{{ route('backend.admin.settings.backup.download', $backup['filename']) }}" class="btn btn-sm btn-light border shadow-sm" title="Download">
+                                        <i class="fas fa-download text-primary"></i>
+                                    </a>
+                                     <a href="{{ route('backend.admin.settings.backup.delete', $backup['filename']) }}" onclick="return confirm('Delete this backup file?')" class="btn btn-sm btn-light border shadow-sm" title="Delete">
+                                        <i class="fas fa-trash text-danger"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="2" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 text-light-gray"></i>
+                                <p class="mb-0">No backup files found.</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash mr-2"></i>Confirm Delete</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this backup?</p>
-                <p class="font-weight-bold" id="deleteFileName"></p>
-                <p class="text-muted">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <form action="{{ route('backend.admin.settings.backup.delete') }}" method="POST" id="deleteForm">
-                    @csrf
-                    <input type="hidden" name="backup_file" id="deleteFileInput">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash mr-1"></i>Yes, Delete
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+    .bg-gradient-maroon {
+        background: linear-gradient(45deg, #800000, #A01010) !important;
+    }
+    .text-maroon {
+        color: #800000 !important;
+    }
+    .btn-maroon {
+        background-color: #800000;
+        color: white;
+        transition: all 0.3s;
+    }
+    .btn-maroon:hover {
+        background-color: #600000;
+        color: white;
+        transform: translateY(-2px);
+    }
+    .border-radius-15 { border-radius: 15px; }
+    .border-radius-25 { border-radius: 25px; }
+    .text-light-gray { color: #e9ecef; }
+</style>
 @endsection
-
-@push('script')
-<script>
-$(document).ready(function() {
-    // Browse button - open folder picker
-    $('#browseBtn').on('click', function() {
-        $('#folderPicker').click();
-    });
-    
-    // Handle folder selection
-    $('#folderPicker').on('change', function(e) {
-        if (this.files && this.files.length > 0) {
-            // Get the folder path from the first file's webkitRelativePath
-            var fullPath = this.files[0].webkitRelativePath;
-            var folderPath = fullPath.split('/')[0];
-            
-            // For Electron apps, we can get the actual path
-            if (this.files[0].path) {
-                var filePath = this.files[0].path;
-                folderPath = filePath.substring(0, filePath.lastIndexOf('\\'));
-            }
-            
-            $('#backup_path').val(folderPath);
-        }
-    });
-
-    // Create Backup - show loading
-    $('#backupForm').on('submit', function() {
-        $('#createBackupBtn').html('<i class="fas fa-spinner fa-spin mr-2"></i>Creating Backup...').prop('disabled', true);
-    });
-
-    // Restore button click
-    $('.restore-btn').on('click', function() {
-        var filename = $(this).data('file');
-        $('#restoreFileName').text(filename);
-        $('#restoreFileInput').val(filename);
-        $('#restoreModal').modal('show');
-    });
-
-    // Delete button click
-    $('.delete-btn').on('click', function() {
-        var filename = $(this).data('file');
-        $('#deleteFileName').text(filename);
-        $('#deleteFileInput').val(filename);
-        $('#deleteModal').modal('show');
-    });
-
-    // Restore form submit - show loading
-    $('#restoreForm').on('submit', function() {
-        $(this).find('button[type=submit]').html('<i class="fas fa-spinner fa-spin mr-1"></i>Restoring...').prop('disabled', true);
-    });
-});
-</script>
-@endpush

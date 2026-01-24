@@ -157,8 +157,8 @@ Route::prefix('admin')->as('backend.admin.')->middleware(['admin', 'license'])->
                 Route::get('/', 'index')->name('settings.backup');
                 Route::post('settings', 'saveSettings')->name('settings.backup.save');
                 Route::post('create', 'createBackup')->name('settings.backup.create');
-                Route::post('restore', 'restoreBackup')->name('settings.backup.restore');
-                Route::post('delete', 'deleteBackup')->name('settings.backup.delete');
+                Route::get('restore/{filename}', 'restoreBackup')->name('settings.backup.restore');
+                Route::get('delete/{filename}', 'deleteBackup')->name('settings.backup.delete');
                 Route::get('download/{filename}', 'downloadBackup')->name('settings.backup.download');
             });
 

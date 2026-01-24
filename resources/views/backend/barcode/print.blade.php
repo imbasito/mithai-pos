@@ -5,18 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Print Barcode</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
+        
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Arial', sans-serif; /* Clean sans-serif for labels */
-            background-color: #fff;
+            font-family: 'Roboto', 'Arial', sans-serif;
+            background-color: #f4f6f9; /* Light background for preview */
         }
 
         /* Container Size */
         .barcode-wrapper {
-            width: {{ $size == 'large' ? '50mm' : '40mm' }};
-            height: {{ $size == 'large' ? '30mm' : '20mm' }};
-            margin: 0 auto; /* Center on screen */
+            width: {{ $size == 'large' ? '50mm' : '38mm' }};
+            height: {{ $size == 'large' ? '30mm' : '25mm' }};
+            margin: 20px auto;
             text-align: center;
             overflow: hidden;
             display: flex;
@@ -25,26 +27,30 @@
             align-items: center;
             background: #fff;
             
-            /* Border for screen preview only */
-            border: 1px dotted #ccc; 
+            /* Preview Border */
+            border: 1px dashed #ccc; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             box-sizing: border-box;
             padding: 1mm;
+            position: relative;
         }
 
         .product-name {
-            font-size: 11px;
-            font-weight: bold;
+            font-size: {{ $size == 'large' ? '10px' : '9px' }};
+            font-weight: 700;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            width: 100%;
+            width: 95%;
             margin-bottom: 2px;
             line-height: 1.1;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #000;
         }
 
         .price-tag {
-            font-size: 14px;
+            font-size: {{ $size == 'large' ? '12px' : '11px' }};
             font-weight: 900;
             color: #000;
             line-height: 1;
@@ -58,13 +64,14 @@
         }
 
         .meta-dates {
-            font-size: 8px;
+            font-size: 7px;
             width: 100%;
             display: flex;
             justify-content: space-between;
             margin-top: 1px;
             font-weight: 600;
             padding: 0 2px;
+            color: #333;
         }
 
         /* Print Specifics */
@@ -72,34 +79,46 @@
             @page {
                 margin: 0;
                 padding: 0;
-                size: {{ $size == 'large' ? '50mm 30mm' : '40mm 20mm' }};
+                size: {{ $size == 'large' ? '50mm 30mm' : '38mm 25mm' }};
             }
             body {
                 margin: 0;
                 padding: 0;
+                background-color: #fff;
             }
             .barcode-wrapper {
-                border: none; /* Remove preview border */
+                border: none;
+                box-shadow: none;
                 margin: 0;
                 width: 100%;
                 height: 100%;
+                /* Slight adjustment for thermal printer margins */
+                padding-top: 1mm; 
+            }
+            .no-print {
+                display: none !important;
             }
         }
-    </style>
-    <style>
-        /* Spinner for Print Button */
-        .spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 5px;
-            vertical-align: middle;
+        
+        /* Interactive Controls */
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+            font-family: sans-serif;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 5px;
+        }
+        .btn-primary { background: #800000; color: white; } /* Maroon */
+        .btn-primary:hover { background: #600000; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
@@ -115,33 +134,38 @@
         @endif
         
         <!-- Barcode -->
-        <svg id="barcode" class="barcode-svg"></svg>
+        <svg id="barcode" class="barcode-svg" style="width: 100%; height: auto;"></svg>
 
         <!-- Dates (Large Size Only) -->
         @if($size == 'large' && ($mfg || $exp))
         <div class="meta-dates">
-            @if($mfg) <span>MFG:{{ \Carbon\Carbon::parse($mfg)->format('dMy') }}</span> @endif
-            @if($exp) <span>EXP:{{ \Carbon\Carbon::parse($exp)->format('dMy') }}</span> @endif
+            @if($mfg) <span>MFG:{{ \Carbon\Carbon::parse($mfg)->format('d/m/y') }}</span> @endif
+            @if($exp) <span>EXP:{{ \Carbon\Carbon::parse($exp)->format('d/m/y') }}</span> @endif
         </div>
         @endif
     </div>
 
-    <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <button id="btnPrint" onclick="printBarcode()" style="padding: 10px 20px; background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer;">Print</button>
-        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; font-weight: bold; cursor: pointer;">Close</button>
+    <div class="no-print controls">
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Preview (Check size matches your paper)</p>
+        <button id="btnPrint" onclick="window.print()" class="btn btn-primary">
+            Print Label
+        </button>
+        <button onclick="window.close()" class="btn btn-secondary">
+            Close Config
+        </button>
     </div>
 
     <script>
         var isLarge = "{{ $size }}" === "large";
         var hasPrice = {{ !empty($price) && $price > 0 ? 'true' : 'false' }};
         
-        // Dynamic sizing
-        var barcodeHeight = isLarge ? (hasPrice ? 25 : 35) : 18; 
-        var barcodeWidth = isLarge ? 1.5 : 1.2;
+        // Fine-tuned for Thermal Printers (203 DPI usually)
+        var barcodeHeight = isLarge ? (hasPrice ? 40 : 50) : 30; 
+        var barcodeWidth = isLarge ? 1.6 : 1.3;
         var fontSize = isLarge ? 12 : 10;
         
         if (!isLarge) {
-            barcodeHeight = 22;
+            barcodeHeight = 25;
             fontSize = 9;
         }
 
@@ -152,52 +176,23 @@
             height: barcodeHeight,
             displayValue: true,
             fontSize: fontSize,
-            font: "Arial",
+            font: "Roboto, Arial, sans-serif",
             textMargin: 0,
             margin: 0,
             flat: true
         });
         
-        function printBarcode() {
-            const btn = document.getElementById('btnPrint');
-            const originalText = btn.innerHTML; // Changed to innerHTML to support spinner
-            
-            // Context Bridge Fallback
-            const electronApp = window.electron || (window.opener && window.opener.electron);
-            const settings = window.posSettings || (window.opener && window.opener.posSettings) || {};
-            
-            if (electronApp && electronApp.printSilent) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner"></span> Printing...';
-                
-                // Use 'printer_tag' setting if available
-                const printerName = settings.tagPrinter ? settings.tagPrinter : '';
-                
-                electronApp.printSilent(window.location.href, printerName)
-                    .then(res => {
-                        if(!res.success) console.error('Print Error: ' + res.error);
-                    })
-                    .catch(e => console.error(e))
-                    .finally(() => {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    });
-            } else {
-                window.print();
-            }
-        }
-        
+        // Auto-print option layout check
         window.onload = function() {
-            setTimeout(function() {
-                printBarcode();
-            }, 500);
+            // Optional: Auto-trigger print dialog
+            // setTimeout(() => window.print(), 500);
         }
         
-        // SHORTCUTS
+        // Keyboard Shortcuts
         document.addEventListener('keydown', function(e) {
            if (e.key === 'Enter') {
                e.preventDefault();
-               printBarcode();
+               window.print();
            } else if (e.key === 'Escape') {
                e.preventDefault();
                window.close();
