@@ -34,7 +34,7 @@ class ProductController extends Controller
 
         abort_if(!auth()->user()->can('product_view'), 403);
         if ($request->ajax()) {
-            $products = Product::with('unit')->latest(); // Use query builder for server-side processing
+            $products = Product::with('unit')->latest()->get(); // Use collection for robust search
             return DataTables::of($products)
                 ->addIndexColumn()
                 ->addColumn('image', fn($data) => '<img src="' . asset('storage/' . $data->image) . '" loading="lazy" alt="' . $data->name . '" class="img-thumb img-fluid" onerror="this.onerror=null; this.src=\'' . asset('assets/images/no-image.png') . '\';" height="80" width="60" />')

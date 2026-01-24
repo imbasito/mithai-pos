@@ -3,19 +3,27 @@
 @section('title', 'Inventory Report')
 
 @section('content')
-<div class="card">
-  <div class="card-body p-2 p-md-4 pt-0">
-    <div class="row g-4">
-      <div class="col-md-12">
-        <div class="card-body table-responsive p-0" id="table_data">
-          <table id="datatables" class="table table-hover">
-            <thead>
+<div class="row animate__animated animate__fadeIn">
+  <div class="col-12">
+    <div class="card shadow-sm border-0 border-radius-15 overflow-hidden" style="min-height: 70vh;">
+      <div class="card-header bg-gradient-maroon py-3 d-flex justify-content-between align-items-center">
+        <h3 class="card-title font-weight-bold text-white mb-0">
+          <i class="fas fa-boxes mr-2"></i> Inventory Report
+        </h3>
+        <div id="export_buttons" class="d-flex justify-content-end ml-auto">
+            <!-- Buttons will be appended here -->
+        </div>
+      </div>
+      <div class="card-body p-3">
+        <div class="table-responsive">
+          <table id="datatables" class="table table-hover mb-0 custom-premium-table">
+            <thead class="bg-dark text-white text-uppercase font-weight-bold small">
               <tr>
-                <th data-orderable="false">#</th>
-                <th>Name</th>
-                <th>SKU</th>
-                <th>Price</th>
-                <th>Stock</th>
+                <th width="50" class="pl-4 text-white" style="color: #ffffff !important; background-color: #4E342E !important;">#</th>
+                <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Name</th>
+                <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">SKU</th>
+                <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Price</th>
+                <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Stock</th>
               </tr>
             </thead>
           </table>
@@ -28,15 +36,52 @@
 @endsection
 @push('style')
 <style>
-  .dataTables_length select {
-    margin-right: 6px;
-    height: 37px !important;
-    border: 1px solid rgba(0, 0, 0, 0.3);
+  .custom-premium-table thead th {
+    border: none;
+    color: #ffffff !important;
+    letter-spacing: 0.05em;
+    padding-top: 15px;
+    padding-bottom: 15px;
   }
-
-  .dataTables_length label {
-    display: flex;
-    align-items: center;
+  .custom-premium-table tbody td {
+    vertical-align: middle;
+    color: #2d3748;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #edf2f9;
+  }
+  .custom-premium-table tr:last-child td {
+    border-bottom: none;
+  }
+  .custom-premium-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  .text-maroon {
+    color: #800000 !important;
+  }
+  .bg-gradient-maroon {
+    background: linear-gradient(45deg, #800000, #A01010) !important;
+  }
+  .dt-buttons .btn {
+      background: #f8f9fa;
+      color: #333;
+      border: 1px solid #ddd;
+      margin-left: 5px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .dt-buttons .btn:hover {
+      background: #d1d5db !important;
+      border-color: #adb5bd !important;
+      color: #000 !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .btn-group>.btn:not(:first-child), .btn-group>.btn-group:not(:first-child) {
+      margin-left: 5px;
   }
 </style>
 @endpush
@@ -86,28 +131,19 @@
           name: 'quantity'
         },
       ],
-      dom: 'lBfrtip', // Enables the buttons
-      buttons: [{
-          extend: 'excel',
-          text: 'Export to Excel',
-          className: 'btn'
-        },
-        {
-          extend: 'pdf',
-          text: 'Export to PDF',
-          className: 'btn'
-        },
-        {
-          extend: 'print',
-          text: 'Print',
-          className: 'btn'
-        }
+      dom: '<"row p-3"<"col-md-6"l><"col-md-6"f>>rt<"row p-3"<"col-md-6"i><"col-md-6"p>>', // Custom dom layout
+      buttons: [
+          { extend: 'excel', text: '<i class="fas fa-file-excel mr-2 text-success"></i> Excel', className: 'btn btn-light btn-md' },
+          { extend: 'pdf', text: '<i class="fas fa-file-pdf mr-2 text-danger"></i> PDF', className: 'btn btn-light btn-md' },
+          { extend: 'print', text: '<i class="fas fa-print mr-2 text-primary"></i> Print', className: 'btn btn-light btn-md' }
       ],
       initComplete: function() {
-        // Hide the "entries" text length changes button
-        $('.dataTables_length label').contents().filter(function() {
-          return this.nodeType === 3;
-        }).remove();
+        // Move buttons to the header container
+        table.buttons().container().appendTo('#export_buttons');
+        
+        // Enhance inputs
+        $('.dataTables_filter input').addClass('form-control form-control-sm border bg-light px-3').css('border-radius', '20px').attr('placeholder', 'Search...');
+        $('.dataTables_length select').addClass('form-control form-control-sm border bg-light').css('border-radius', '10px');
       }
     });
   });

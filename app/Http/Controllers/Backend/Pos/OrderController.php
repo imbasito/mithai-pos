@@ -19,8 +19,9 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $orders = Order::with('customer')->latest(); // Use query builder and latest for optimization
+            $orders = Order::with('customer')->latest()->get(); // Use collection for robust search
             return DataTables::of($orders)
+                ->addIndexColumn()
                 ->addIndexColumn()
                 ->addColumn('saleId', fn($data) => "#" . $data->id)
                 ->addColumn('customer', fn($data) => $data->customer->name ?? '-')

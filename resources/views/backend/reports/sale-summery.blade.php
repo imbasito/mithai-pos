@@ -3,39 +3,25 @@
 @section('title', 'Sale Report')
 
 @section('content')
-<div class="card">
-  <div class="mt-n5 mb-3 d-flex justify-content-end">
-    <div class="form-group">
-      <div class="input-group">
-        <button type="button" class="btn btn-default float-right" id="daterange-btn">
-          <i class="far fa-calendar-alt"></i> Filter by date
-          <i class="fas fa-caret-down"></i>
-        </button>
+<div class="row animate__animated animate__fadeIn">
+  <div class="col-12">
+    <div class="card shadow-sm border-0 border-radius-15 overflow-hidden" style="min-height: 70vh;">
+      <div class="card-header bg-gradient-maroon py-3 d-flex justify-content-between align-items-center">
+        <h3 class="card-title font-weight-bold text-white mb-0">
+          <i class="fas fa-chart-pie mr-2"></i> Sale Summary
+        </h3>
+        <div class="form-group mb-0 ml-auto">
+            <button type="button" class="btn btn-light btn-sm text-maroon font-weight-bold shadow-sm" id="daterange-btn" style="border-radius: 20px;">
+              <i class="far fa-calendar-alt mr-2"></i> <span>Filter by date</span>
+              <i class="fas fa-caret-down ml-2"></i>
+            </button>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="card-body p-2 p-md-4 pt-0">
+      <div class="card-body p-4">
     <div class="row g-4">
       <div class="col-md-12">
         <div class="card-body p-0">
-          <section class="invoice">
-            <!-- info row -->
-            <div class="row invoice-info">
-              <div class="col-sm-4">
-              </div>
-              <!-- /.col -->
-              <div class="col-sm-4">
-                <address>
-                  <strong>Sale Summery ({{$start_date}} - {{$end_date}})</strong><br>
-                </address>
-              </div>
-              <!-- /.col -->
-              <div class="col-sm-2">
-              </div>
-              <!-- /.col -->
-            </div>
-            <!-- /.row -->
-
+          <section class="invoice" style="border: none;">
             <!-- Table row -->
             <div class="row justify-content-center">
               <div class="col-10">
@@ -101,8 +87,10 @@
           </section>
         </div>
       </div>
+      </div>
     </div>
   </div>
+</div>
 </div>
 @endsection
 
@@ -111,16 +99,24 @@
   .invoice {
     border: none !important;
   }
+  .bg-gradient-maroon {
+    background: linear-gradient(45deg, #800000, #A01010) !important;
+  }
+  .text-maroon {
+    color: #800000 !important;
+  }
 </style>
 @endpush
 @push('script')
 <script>
   $(function() {
     const urlParams = new URLSearchParams(window.location.search);
-    const startDate = urlParams.get('start_date') || moment().subtract(29, 'days').format('YYYY-MM-DD'); // Default to last 30 days if not present
-    const endDate = urlParams.get('end_date') || moment().format('YYYY-MM-DD'); // Default to today if not present
+    const startDateParam = urlParams.get('start_date');
+    const endDateParam = urlParams.get('end_date');
 
-    //Date range as a button
+    const startDate = startDateParam ? moment(startDateParam, 'YYYY-MM-DD') : moment().subtract(29, 'days');
+    const endDate = endDateParam ? moment(endDateParam, 'YYYY-MM-DD') : moment();
+
     $('#daterange-btn').daterangepicker({
         ranges: {
           'Today': [moment(), moment()],
@@ -130,14 +126,37 @@
           'This Month': [moment().startOf('month'), moment().endOf('month')],
           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
         },
-        startDate: moment(startDate, "YYYY-MM-DD"),
-        endDate: moment(endDate, "YYYY-MM-DD")
+        startDate: startDate,
+        endDate: endDate
       },
       function(start, end) {
-        $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'))
+        $('#daterange-btn span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
         window.location.href = '{{ route("backend.admin.sale.summery") }}?start_date=' + start.format('YYYY-MM-DD') + '&end_date=' + end.format('YYYY-MM-DD');
       }
-    )
+    );
+
+    // Initial check to set label if it matches a predefined range
+    var ranges = {
+        'Today': [moment(), moment()],
+        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+        'This Month': [moment().startOf('month'), moment().endOf('month')],
+        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+    };
+    
+    // Default to custom
+    var label = startDate.format('MMMM D, YYYY') + ' - ' + endDate.format('MMMM D, YYYY');
+
+    // Check if matches any range
+    $.each(ranges, function(key, range) {
+        if (startDate.isSame(range[0], 'day') && endDate.isSame(range[1], 'day')) {
+            label = key;
+            return false; // Break the loop
+        }
+    });
+
+    $('#daterange-btn span').html(label);
   })
 </script>
 @endpush

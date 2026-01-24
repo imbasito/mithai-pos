@@ -16,7 +16,7 @@ class UnitController extends Controller
     {
         abort_if(!auth()->user()->can('unit_view'), 403);
         if ($request->ajax()) {
-            $units = Unit::query();
+            $units = Unit::query()->latest()->get();
             return DataTables::of($units)
                 ->addIndexColumn()
                 ->addColumn('title', fn($data) => $data->title)

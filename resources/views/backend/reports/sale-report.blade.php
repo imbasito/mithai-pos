@@ -3,40 +3,25 @@
 @section('title', 'Sale Report')
 
 @section('content')
-<div class="card">
-  <div class="mt-n5 mb-3 d-flex justify-content-end">
-    <div class="form-group">
-      <div class="input-group">
-        <button type="button" class="btn btn-default float-right" id="daterange-btn">
-          <i class="far fa-calendar-alt"></i> Filter by date
-          <i class="fas fa-caret-down"></i>
-        </button>
+<div class="row animate__animated animate__fadeIn">
+  <div class="col-12">
+    <div class="card shadow-sm border-0 border-radius-15 overflow-hidden" style="min-height: 70vh;">
+      <div class="card-header bg-gradient-maroon py-3 d-flex justify-content-between align-items-center">
+        <h3 class="card-title font-weight-bold text-white mb-0">
+          <i class="fas fa-file-invoice-dollar mr-2"></i> Sales Report
+        </h3>
+        <div class="form-group mb-0 ml-auto">
+            <button type="button" class="btn btn-light btn-sm text-maroon font-weight-bold shadow-sm" id="daterange-btn" style="border-radius: 20px;">
+              <i class="far fa-calendar-alt mr-2"></i> <span>Filter by date</span>
+              <i class="fas fa-caret-down ml-2"></i>
+            </button>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="card-body p-2 p-md-4 pt-0">
+      <div class="card-body p-4">
     <div class="row g-4">
       <div class="col-md-12">
         <div class="card-body p-0">
           <section class="invoice">
-            <!-- info row -->
-            <div class="row invoice-info">
-              <div class="col-sm-4">
-              </div>
-              <!-- /.col -->
-              <div class="col-sm-4">
-                <address>
-                  <strong>Sale Report ({{$start_date}} - {{$end_date}})</strong><br>
-                  <small>Net Revenue: {{currency()->symbol??''}} {{number_format($net_revenue,2)}}</small>
-                </address>
-              </div>
-              <!-- /.col -->
-              <div class="col-sm-2">
-              </div>
-              <!-- /.col -->
-            </div>
-            <!-- /.row -->
-
             <!-- Summary Row -->
             <div class="row mb-3">
                 <div class="col-md-3">
@@ -67,49 +52,26 @@
 
             <!-- Table row -->
             <div class="row justify-content-center">
-              <div class="col-12">
-                <table id="datatables" class="table table-hover">
-                  <thead>
+              <div class="col-12 table-responsive">
+                <table id="datatables" class="table table-hover mb-0 custom-premium-table">
+                  <thead class="bg-dark text-white text-uppercase font-weight-bold small">
                     <tr>
-                      <th data-orderable="false">#</th>
-                      <th>SaleId</th>
-                      <th>Customer</th>
-                      <th>Date</th>
-                      <th>Item</th>
-                      <th>Sub Total {{currency()->symbol??''}}</th>
-                      <th>Discount {{currency()->symbol??''}}</th>
-                      <th>Total {{currency()->symbol??''}}</th>
-                      <th>Paid {{currency()->symbol??''}}</th>
-                      <th>Due {{currency()->symbol??''}}</th>
-                      <th>Status</th>
+                      <th data-orderable="false" width="40" class="pl-4 text-white" style="color: #ffffff !important; background-color: #4E342E !important;">#</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">SaleId</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Customer</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Date</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Item</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Sub Total {{currency()->symbol??''}}</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Discount {{currency()->symbol??''}}</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Total {{currency()->symbol??''}}</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Paid {{currency()->symbol??''}}</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Due {{currency()->symbol??''}}</th>
+                      <th class="text-white" style="color: #ffffff !important; background-color: #4E342E !important;">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    @forelse($orders as $index => $order)
-                    <tr>
-                      <td>{{ $index + 1 }}</td>
-                      <td>#{{$order->id}}</td>
-                      <td>{{ $order->customer->name ?? '-' }}</td>
-                      <td>{{ $order->created_at->format('d-m-Y') }}</td>
-                      <td>{{$order->total_item}}</td>
-                      <td>{{number_format($order->sub_total,2,'.',',')}}</td>
-                      <td>{{number_format($order->discount,2,'.',',')}}</td>
-                      <td>{{number_format($order->total,2,'.',',')}}</td>
-                      <td>{{number_format($order->paid,2,'.',',')}}</td>
-                      <td>{{number_format($order->due,2,'.',',')}}</td>
-                      <td>
-                        @if ($order->status)
-                        Paid
-                        @else
-                        Due
-                        @endif
-                      </td>
-                    </tr>
-                    @empty
-                    <tr>
-                      <td colspan="7" class="text-center">No sells found.</td>
-                    </tr>
-                    @endforelse
+                  <tbody>
+                    {{-- Loaded via AJAX --}}
                   </tbody>
                 </table>
               </div>
@@ -126,6 +88,7 @@
           </section>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </div>
@@ -136,6 +99,32 @@
   .invoice {
     border: none !important;
   }
+  .custom-premium-table thead th {
+    border: none;
+    color: #ffffff !important;
+    letter-spacing: 0.05em;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+  .custom-premium-table tbody td {
+    vertical-align: middle;
+    color: #2d3748;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #edf2f9;
+  }
+  .custom-premium-table tr:last-child td {
+    border-bottom: none;
+  }
+  .custom-premium-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  .text-maroon {
+    color: #800000 !important;
+  }
+  .bg-gradient-maroon {
+    background: linear-gradient(45deg, #800000, #A01010) !important;
+  }
 </style>
 @endpush
 @push('script')
@@ -143,8 +132,50 @@
   $(function() {
     // Extract start and end dates from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const startDate = urlParams.get('start_date') || moment().subtract(29, 'days').format('YYYY-MM-DD'); // Default to last 30 days if not present
-    const endDate = urlParams.get('end_date') || moment().format('YYYY-MM-DD'); // Default to today if not present
+    const startDate = urlParams.get('start_date') || moment().subtract(29, 'days').format('YYYY-MM-DD'); 
+    const endDate = urlParams.get('end_date') || moment().format('YYYY-MM-DD');
+
+    // Initialize DataTable using server-side processing
+    let table = $('#datatables').DataTable({
+      processing: true,
+      serverSide: true,
+      ordering: true,
+      ajax: {
+        url: "{{ route('backend.admin.sale.report') }}",
+        data: function(d) {
+           d.start_date = startDate;
+           d.end_date = endDate;
+        }
+      },
+      columns: [
+        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'pl-4' },
+        { data: 'saleId', name: 'id' }, // use 'id' for DB column name search
+        { data: 'customer', name: 'customer.name' },
+        { data: 'date', name: 'created_at' },
+        { data: 'item', name: 'total_item' },
+        { data: 'sub_total', name: 'sub_total' },
+        { data: 'discount', name: 'discount' },
+        { data: 'total', name: 'total', className: 'font-weight-bold text-maroon' },
+        { data: 'paid', name: 'paid' },
+        { data: 'due', name: 'due' },
+        { data: 'status', name: 'status' }
+      ],
+      order: [[3, 'desc']], // Order by Date desc
+      dom: 'lfrtip',
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search report...",
+        lengthMenu: "_MENU_ per page",
+        paginate: {
+            previous: '<i class="fas fa-chevron-left"></i>',
+            next: '<i class="fas fa-chevron-right"></i>'
+        }
+      },
+      initComplete: function() {
+          $('.dataTables_filter input').addClass('form-control form-control-sm border bg-light px-3').css('border-radius', '20px');
+          $('.dataTables_length select').addClass('form-control form-control-sm border bg-light').css('border-radius', '10px');
+      }
+    });
 
     // Initialize the date range picker
     $('#daterange-btn').daterangepicker({
@@ -157,19 +188,51 @@
           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
         },
         startDate: moment(startDate, "YYYY-MM-DD"),
-        endDate: moment(endDate, "YYYY-MM-DD")
+        endDate: moment(endDate, "YYYY-MM-DD"),
+        autoApply: true // Auto apply nicely closes the picker or applies immediately
       },
-      function(start, end) {
-        // Update the button text with the selected range
-        $('#daterange-btn span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
-
+      function(start, end, label) {
+        // Update the button text with the selected range label if available, otherwise dates
+        if (label && label !== 'Custom Range') {
+            $('#daterange-btn span').html(label);
+        } else {
+            $('#daterange-btn span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+        }
+        
         // Redirect with selected start and end dates
         window.location.href = '{{ route("backend.admin.sale.report") }}?start_date=' + start.format('YYYY-MM-DD') + '&end_date=' + end.format('YYYY-MM-DD');
       }
     );
 
-    // Set the initial display text for the date range button
-    $('#daterange-btn span').html(moment(startDate, "YYYY-MM-DD").format('MMMM D, YYYY') + ' - ' + moment(endDate, "YYYY-MM-DD").format('MMMM D, YYYY'));
+    // Set the initial display text
+    // Check if current range matches any predefined range
+    const ranges = {
+        'Today': [moment(), moment()],
+        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+        'This Month': [moment().startOf('month'), moment().endOf('month')],
+        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+    };
+    
+    let label = 'Custom Range';
+    const startObj = moment(startDate, "YYYY-MM-DD");
+    const endObj = moment(endDate, "YYYY-MM-DD");
+
+    for (const [key, value] of Object.entries(ranges)) {
+        // Compare formatted dates
+        if (startObj.format('YYYY-MM-DD') === value[0].format('YYYY-MM-DD') && 
+            endObj.format('YYYY-MM-DD') === value[1].format('YYYY-MM-DD')) {
+             label = key;
+             break;
+        }
+    }
+    
+    if (label !== 'Custom Range') {
+         $('#daterange-btn span').html(label);
+    } else {
+         $('#daterange-btn span').html(moment(startDate, "YYYY-MM-DD").format('MMMM D, YYYY') + ' - ' + moment(endDate, "YYYY-MM-DD").format('MMMM D, YYYY'));
+    }
   });
 </script>
 @endpush

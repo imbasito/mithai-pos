@@ -14,34 +14,57 @@ class ReportController extends Controller
 
     public function saleReport(Request $request)
     {
-
         abort_if(!auth()->user()->can(abilities: 'reports_sales'), 403);
-        // Get user input or set default values
+
+        // Common date logic
         $start_date_input = $request->input('start_date', Carbon::today()->subDays(29)->format('Y-m-d'));
         $end_date_input = $request->input('end_date', Carbon::today()->format('Y-m-d'));
+        $start_date = Carbon::createFromFormat('Y-m-d', $start_date_input)->startOfDay();
+        $end_date = Carbon::createFromFormat('Y-m-d', $end_date_input)->endOfDay();
 
-        // Parse and set start date
-        $start_date = Carbon::createFromFormat('Y-m-d', $start_date_input) ?: Carbon::today()->subDays(29)->startOfDay();
-        $start_date = $start_date->startOfDay();
+        if ($request->ajax()) {
+            $orders = Order::whereBetween('created_at', [$start_date, $end_date])->with('customer')->latest()->get();
+            return DataTables::of($orders)
+                ->addIndexColumn()
+                ->addColumn('saleId', fn($data) => "#" . $data->id)
+                ->addColumn('customer', fn($data) => $data->customer->name ?? '-')
+                ->addColumn('date', fn($data) => $data->created_at->format('d-m-Y'))
+                ->addColumn('item', fn($data) => $data->total_item)
+                ->addColumn('sub_total', fn($data) => number_format($data->sub_total, 2, '.', ','))
+                ->addColumn('discount', fn($data) => number_format($data->discount, 2, '.', ','))
+                ->addColumn('total', fn($data) => number_format($data->total, 2, '.', ','))
+                ->addColumn('paid', fn($data) => number_format($data->paid, 2, '.', ','))
+                ->addColumn('due', fn($data) => number_format($data->due, 2, '.', ','))
+                ->addColumn('status', fn($data) => $data->status
+                    ? '<span class="badge bg-primary">Paid</span>'
+                    : '<span class="badge bg-danger">Due</span>')
+                ->rawColumns(['status'])
+                ->toJson();
+        }
 
-        // Parse and set end date
-        $end_date = Carbon::createFromFormat('Y-m-d', $end_date_input) ?: Carbon::today()->endOfDay();
-        $end_date = $end_date->endOfDay();
-        // Retrieve orders within the date range
-        $orders = Order::whereBetween('created_at', [$start_date, $end_date])->with('customer')->get();
-
-        // Calculate totals
+        // Calculate totals for the summary cards
+        // Utilizing a separate query for aggregates to be efficient
+        // Calculate totals for the summary cards
+        // Utilizing a separate query for aggregates to be efficient
+        $ordersQuery = Order::whereBetween('orders.created_at', [$start_date, $end_date]);
+        
         $total_refunds = \App\Models\ProductReturn::whereBetween('created_at', [$start_date, $end_date])->sum('total_refund');
+        
+        // Clone query for efficiency to avoid re-building
+        $sub_total = (clone $ordersQuery)->sum('sub_total');
+        $discount = (clone $ordersQuery)->sum('discount');
+        $paid = (clone $ordersQuery)->sum('paid');
+        $due = (clone $ordersQuery)->sum('due');
+        $total = (clone $ordersQuery)->sum('total');
 
         $data = [
-            'orders' => $orders,
-            'sub_total' => $orders->sum('sub_total'),
-            'discount' => $orders->sum('discount'),
-            'paid' => $orders->sum('paid'),
-            'due' => $orders->sum('due'),
-            'total' => $orders->sum('total'),
+            'sub_total' => $sub_total,
+            'discount' => $discount,
+            'paid' => $paid,
+            'due' => $due,
+            'total' => $total,
             'total_refunds' => $total_refunds,
-            'net_revenue' => $orders->sum('total') - $total_refunds,
+            'net_revenue' => $total - $total_refunds,
             'start_date' => $start_date->format('M d, Y'),
             'end_date' => $end_date->format('M d, Y'),
         ];
@@ -97,7 +120,7 @@ class ReportController extends Controller
 
         abort_if(!auth()->user()->can('reports_inventory'), 403);
         if ($request->ajax()) {
-            $products = Product::latest()->active()->get();
+            $products = Product::latest()->active()->get(); // Use get() for collection-based filtering
             return DataTables::of($products)
                 ->addIndexColumn()
                 ->addColumn('name', fn($data) => $data->name)
