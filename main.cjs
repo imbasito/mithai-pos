@@ -1,4 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain, session, powerSaveBlocker } = require('electron');
+const fs = require('fs');
+
 
 // Performance & Professionalism Optimizations (Apple-Style Native Feel)
 app.commandLine.appendSwitch('disable-http-cache');
@@ -28,6 +30,68 @@ let laravelPort = 8000;
 const basePath = app.isPackaged ? process.resourcesPath : __dirname;
 
 // ============================================
+// PROFESSIONAL LOG MANAGEMENT (Black Box)
+// ============================================
+class Logger {
+    constructor() {
+        this.logDir = path.join(basePath, 'storage', 'logs');
+        this.logFile = path.join(this.logDir, 'desktop.log');
+        if (!fs.existsSync(this.logDir)) {
+            fs.mkdirSync(this.logDir, { recursive: true });
+        }
+    }
+
+    log(message, level = 'INFO') {
+        const timestamp = new Date().toISOString();
+        const logEntry = `[${timestamp}] [${level}] ${message}\n`;
+        console.log(logEntry.trim());
+        try {
+            fs.appendFileSync(this.logFile, logEntry);
+        } catch (err) {
+            console.error('Failed to write to log file:', err);
+        }
+    }
+
+    error(message) { this.log(message, 'ERROR'); }
+    warn(message) { this.log(message, 'WARN'); }
+
+    /**
+     * Automatic Log Rotation (7-day retention)
+     */
+    rotateLogs() {
+        this.log('Running log rotation...');
+        try {
+            const now = Date.now();
+            const files = fs.readdirSync(this.logDir);
+            files.forEach(file => {
+                if (file.endsWith('.log')) {
+                    const filePath = path.join(this.logDir, file);
+                    const stats = fs.statSync(filePath);
+                    const ageInDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+                    if (ageInDays > 7) {
+                        fs.unlinkSync(filePath);
+                        this.log(`Deleted old log file: ${file}`);
+                    }
+                }
+            });
+        } catch (err) {
+            this.error(`Rotation failed: ${err.message}`);
+        }
+    }
+
+    /**
+     * Startup Maintenance (Cleanup Temp & Junk)
+     */
+    cleanup() {
+        this.log('Performing startup maintenance...');
+        this.rotateLogs();
+        // Additional cleanup like pruning old crash dumps or session cache can go here
+    }
+}
+const logger = new Logger();
+
+// ============================================
+
 // HEALTH CHECK UTILITIES
 // ============================================
 function checkDiskSpace(minMB = 500) {
@@ -40,9 +104,10 @@ function checkDiskSpace(minMB = 500) {
         const { exec } = require('child_process');
         exec(cmd, (error, stdout) => {
             if (error) {
-                console.error('Disk check failed:', error);
+                logger.error('Disk check failed: ' + error.message);
                 return resolve(true);
             }
+
             
             let freeBytes = 0;
             if (process.platform === 'win32') {
@@ -148,30 +213,39 @@ function updateSplashStatus(message) {
 // ============================================
 function startMySQL() {
     return new Promise((resolve) => {
+        logger.log('Starting MySQL Server...');
         const mysqlPath = path.join(basePath, 'mysql', 'bin', 'mysqld.exe');
         const myIniPath = path.join(basePath, 'mysql', 'my.ini');
         mysqlServer = spawn(mysqlPath, [`--defaults-file=${myIniPath}`, '--console'], { cwd: basePath, windowsHide: true });
-        mysqlServer.on('exit', (code) => { if (!app.isQuitting) setTimeout(startMySQL, 1000); });
+        mysqlServer.on('exit', (code) => { 
+            if (!app.isQuitting) {
+                logger.warn('MySQL exited unexpectedly. Restarting...');
+                setTimeout(startMySQL, 1000); 
+            }
+        });
         resolve();
     });
 }
 
 function startLaravel(port) {
     return new Promise((resolve) => {
+        logger.log(`Starting Laravel Server on port ${port}...`);
         const phpPath = path.join(basePath, 'php', 'php.exe');
         laravelServer = spawn(phpPath, ['artisan', 'serve', `--host=127.0.0.1`, `--port=${port}`], { cwd: basePath, windowsHide: true });
         resolve();
     });
 }
 
+
 // ============================================
 // MAIN WINDOW
 // ============================================
 function createMainWindow() {
     const preloadPath = path.join(__dirname, 'preload.cjs');
-    console.log(`[INIT]: Loading Preload from ${preloadPath}`);
+    logger.log(`[INIT]: Loading Preload from ${preloadPath}`);
     
     mainWindow = new BrowserWindow({
+
         width: 1280, height: 800, title: "SPOS", icon: path.join(basePath, 'pos-icon.ico'), 
         autoHideMenuBar: true, show: false,
         backgroundColor: '#f4f6f9', 
@@ -280,69 +354,44 @@ function setupAutoUpdater() {
                 
                 await printWindow.loadFile(tempPath);
                 
-                // 3. Dynamic Image Capture (Professional 1:1 Match)
-                ipcMain.once('ready-to-print', async (event, dims) => {
-                    if(!printWindow || printWindow.isDestroyed()) return;
+                // 3. Reliable Height Detection & Capture (Maturity Plan)
+                try {
+                    // Wait for fonts & rendering
+                    await printWindow.webContents.executeJavaScript('document.fonts.ready');
+                    await new Promise(r => setTimeout(r, 600)); // Buffer for paint
 
-                    // A. Resize Window to Exact Content Height
-                    const contentHeight = Math.ceil(dims.height || 1000);
-                    // Add small buffer for padding
-                    printWindow.setContentSize(302, contentHeight + 50); 
+                    const contentHeight = await printWindow.webContents.executeJavaScript('document.body.scrollHeight');
+                    printWindow.setContentSize(302, Math.ceil(contentHeight) + 50);
                     
-                    // B. Wait for Resize & Paint
-                    await new Promise(r => setTimeout(r, 400));
-
-                    // C. Capture Exact Image
-                    try {
-                        const image = await printWindow.webContents.capturePage();
-                        const receiptsDir = path.join(app.getPath('documents'), 'Receipts');
-                        if (!require('fs').existsSync(receiptsDir)) require('fs').mkdirSync(receiptsDir);
-                        
-                        const filename = `${jsonData.type === 'barcode' ? 'Barcode' : 'Receipt'}_${jsonData.id || Date.now()}.png`;
-                        const imagePath = path.join(receiptsDir, filename);
-                        
-                        require('fs').writeFileSync(imagePath, image.toPNG());
-                        console.log(`[IMAGE SAVED]: ${imagePath}`);
-                    } catch (captureErr) {
-                        console.error("Image Capture Failed:", captureErr);
-                    }
-
-                    // D. Physical Print (Silent)
-                    const cleanPrinterName = printerName ? printerName.toLowerCase() : "";
-                    const isPdfPrinter = cleanPrinterName.includes("pdf") || cleanPrinterName.includes("microsoft");
-
-                    if (!isPdfPrinter) {
-                         printWindow.webContents.print({ 
-                            silent: true, 
-                            deviceName: printerName, 
-                            margins: { marginType: 'none' } 
-                        }, async (success, err) => {
-                            if(!success) console.error("Physical Print Failed:", err);
-                            else {
-                                // AUTO-DRAWER KICK ON SUCCESSFUL RECEIPT
-                                if (jsonData.type !== 'barcode') {
-                                    triggerCashDrawer(printerName);
-                                }
-                            }
-                        });
-                    }
+                    // Capture Page as PNG
+                    const image = await printWindow.webContents.capturePage();
+                    const receiptsDir = path.join(app.getPath('documents'), 'Receipts');
+                    if (!require('fs').existsSync(receiptsDir)) require('fs').mkdirSync(receiptsDir);
                     
-                    // Close after short delay
-                    setTimeout(() => {
+                    const filename = `${jsonData.type === 'barcode' ? 'Barcode' : 'Receipt'}_${jsonData.id || Date.now()}.png`;
+                    const imagePath = path.join(receiptsDir, filename);
+                    require('fs').writeFileSync(imagePath, image.toPNG());
+
+                    // 4. Physical Print (Silent)
+                    printWindow.webContents.print({ 
+                        silent: true, 
+                        deviceName: printerName, 
+                        margins: { marginType: 'none' } 
+                    }, (success, err) => {
+                        if(!success) console.error("Physical Print Failed:", err);
+                        else if (jsonData.type !== 'barcode') {
+                            triggerCashDrawer(printerName);
+                        }
                         if(!printWindow.isDestroyed()) printWindow.close();
-                        try { fs.unlinkSync(tempPath); } catch(e){}
-                    }, 5000);
-                });
+                    });
 
-                // Fail-safe timeout if renderer never signals
-                setTimeout(() => {
-                    if(!printWindow.isDestroyed()) {
-                        console.warn("Print timed out, closing.");
-                        printWindow.close();
-                    }
-                }, 10000);
+                } catch (captureErr) {
+                    console.error("Reliable capture failed:", captureErr);
+                    if(!printWindow.isDestroyed()) printWindow.close();
+                }
 
-                return { success: true, message: "Processing Print..." }; // Visual feedback immediate
+                return { success: true };
+
 
 
             } else {
@@ -388,12 +437,15 @@ async function startApp() {
         os.setPriority(os.constants.priority.PRIORITY_HIGH);
         
         await checkDiskSpace(200);
+        logger.cleanup(); // Self-healing: Cleanup old logs and temp data
         updateSplashStatus('Starting...');
-        await new Promise(r => setTimeout(r, 400));
+
+        await new Promise(r => setTimeout(r, 700));
 
 
 
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 700));
+
 
 
         await startMySQL();
@@ -401,7 +453,8 @@ async function startApp() {
         updateSplashStatus('Loading database...');
 
 
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 700));
+
 
 
         await startLaravel(laravelPort);
@@ -415,13 +468,15 @@ async function startApp() {
         updateSplashStatus('Establishing connection...');
 
 
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 700));
+
 
 
         
         updateSplashStatus('Finalizing...');
 
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 700));
+
 
 
         
@@ -429,10 +484,11 @@ async function startApp() {
         setupAutoUpdater();
         createMainWindow();
     } catch (error) {
-        console.error('Startup error:', error);
+        logger.error('Startup error: ' + error.message);
         app.quit();
     }
 }
+
 
 app.whenReady().then(startApp);
 app.on('window-all-closed', () => { killProcesses(); app.quit(); });
@@ -632,9 +688,7 @@ function generateReceiptHtml(data) {
     <script>${barcodeLib}</script>
     
     <script>
-        const { ipcRenderer } = require('electron');
-        
-        async function signalReady() {
+        async function renderBarcode() {
             // 1. Generate Barcode
             try {
                 if(typeof JsBarcode !== 'undefined') {
@@ -648,18 +702,11 @@ function generateReceiptHtml(data) {
                         margin: 0
                     });
                 }
-            } catch (e) { ipcRenderer.send('log-from-render', "Barcode Failed: " + e.message); }
-
-            // 2. Wait for fonts & paint
-            await document.fonts.ready;
-            setTimeout(() => {
-                 const bodyHeight = document.body.scrollHeight;
-                 ipcRenderer.send('ready-to-print', { height: bodyHeight });
-            }, 600); 
+            } catch (e) { console.error("Barcode Failed: ", e); }
         }
-
-        window.onload = signalReady;
+        window.onload = renderBarcode;
     </script>
+
 </body>
 </html>`;
 }
@@ -711,22 +758,19 @@ function generateBarcodeHtml(data) {
 
     <script>${barcodeLib}</script>
     <script>
-        const { ipcRenderer } = require('electron');
         window.onload = () => {
-            JsBarcode("#barcode", "${barcodeValue}", {
-                format: "CODE128",
-                width: 1.8,
-                height: 50,
-                displayValue: true,
-                fontSize: 14
-            });
-            
-            setTimeout(() => {
-                const bodyHeight = document.body.scrollHeight;
-                ipcRenderer.send('ready-to-print', { height: bodyHeight });
-            }, 600);
+            if(typeof JsBarcode !== 'undefined') {
+                JsBarcode("#barcode", "${barcodeValue}", {
+                    format: "CODE128",
+                    width: 1.8,
+                    height: 50,
+                    displayValue: true,
+                    fontSize: 14
+                });
+            }
         }
     </script>
+
 </body>
 </html>`;
 }

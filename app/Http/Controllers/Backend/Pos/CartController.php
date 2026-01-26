@@ -8,6 +8,8 @@ use App\Models\PosCart;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+
 
 class CartController extends Controller
 {
@@ -29,10 +31,26 @@ class CartController extends Controller
                 'total' => round($total, 2)
             ]);
         }
-        // clear cart
-        PosCart::where('user_id', auth()->id())->delete();
+        
+        // On fresh page load, we don't clear the cart anymore. 
+        // We let the frontend detect if it should continue or offer restore from journal.
         return view('backend.cart.index');
     }
+
+
+    public function checkJournal()
+    {
+        $path = storage_path('app/current_sale.journal');
+        if (File::exists($path)) {
+            $journal = json_decode(File::get($path), true);
+            return response()->json([
+                'exists' => true,
+                'data' => $journal
+            ]);
+        }
+        return response()->json(['exists' => false]);
+    }
+
     public function getProducts(Request $request)
     {
         $search = $request->search;
@@ -106,7 +124,9 @@ class CartController extends Controller
                 $cartItem->quantity += 1;
                 $cartItem->save();
                 $cartItem->load('product');
+                $this->syncJournal();
                 return response()->json(['message' => 'Quantity updated', 'cart' => $cartItem], 200);
+
             } else {
                 return response()->json(['message' => 'Cannot add more, stock limit reached'], 400);
             }
@@ -118,9 +138,38 @@ class CartController extends Controller
             $cart->quantity = 1;
             $cart->save();
             $cart->load('product');
+            $this->syncJournal();
             return response()->json(['message' => 'Product added to cart', 'cart' => $cart], 201);
         }
     }
+
+    private function syncJournal()
+    {
+        try {
+            $userId = auth()->id();
+            $cartItems = PosCart::where('user_id', $userId)
+                ->with('product')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'product_id' => $item->product_id,
+                        'name' => $item->product->name,
+                        'price' => $item->product->discounted_price,
+                        'quantity' => $item->quantity,
+                    ];
+                });
+
+            $path = storage_path('app/current_sale.journal');
+            file_put_contents($path, json_encode([
+                'user_id' => $userId,
+                'items' => $cartItems,
+                'timestamp' => now()->toDateTimeString()
+            ], JSON_PRETTY_PRINT), LOCK_EX);
+        } catch (\Exception $e) {
+            \Log::error("Journal Sync Failed: " . $e->getMessage());
+        }
+    }
+
 
     public function increment(Request $request)
     {
@@ -137,7 +186,9 @@ class CartController extends Controller
         }
         $cart->quantity = $cart->quantity + 1;
         $cart->save();
+        $this->syncJournal();
         return response()->json(['message' => 'Cart Updated successfully'], 200);
+
     }
     public function decrement(Request $request)
     {
@@ -150,7 +201,9 @@ class CartController extends Controller
         }
         $cart->quantity = $cart->quantity - 1;
         $cart->save();
+        $this->syncJournal();
         return response()->json(['message' => 'Cart Updated successfully'], 200);
+
     }
     public function delete(Request $request)
     {
@@ -160,16 +213,20 @@ class CartController extends Controller
 
         $cart = PosCart::findOrFail($request->id);
         $cart->delete();
+        $this->syncJournal();
 
         return response()->json(['message' => 'Item successfully deleted'], 200);
+
     }
     public function empty()
     {
         $deletedCount = PosCart::where('user_id', auth()->id())->delete();
 
         if ($deletedCount > 0) {
+            $this->syncJournal();
             return response()->json(['message' => 'Cart successfully cleared'], 200);
         }
+
 
         return response()->json(['message' => 'Cart is already empty'], 204);
     }
@@ -204,8 +261,10 @@ class CartController extends Controller
 
         $cart->quantity = $newQuantity;
         $cart->save();
+        $this->syncJournal();
 
         return response()->json(['message' => 'Quantity updated to ' . $newQuantity], 200);
+
     }
 
     /**
@@ -251,6 +310,8 @@ class CartController extends Controller
 
         $cart->quantity = $calculatedQuantity;
         $cart->save();
+        $this->syncJournal();
+
 
         // Return both new quantity and calculated total for UI update
         $newTotal = round($calculatedQuantity * $pricePerUnit, 2);

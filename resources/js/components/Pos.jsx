@@ -171,12 +171,51 @@ export default function Pos() {
     // Initial Load
     useEffect(() => {
          getProducts();
+         checkJournal(); // Check for interrupted session
          setInitialLoadDone(true);
          // Bridge Check
          if(window.electron && window.electron.isElectron) {
              console.log("SPOS: Desktop Bridge Ready");
          }
     }, []);
+
+    // Journal Recovery logic
+    const checkJournal = async () => {
+        try {
+            const res = await axios.get('/admin/cart/check-journal');
+            if (res.data?.exists && res.data.data.items.length > 0) {
+                const journal = res.data.data;
+                const lastItems = journal.items.length;
+                
+                Swal.fire({
+                    title: 'Interrupted Session Found!',
+                    text: `Restore ${lastItems} items from previous session?`,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Restore',
+                    cancelButtonText: 'Discard',
+                    confirmButtonColor: '#800000',
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        const toastId = toast.loading('Restoring session...');
+                        try {
+                            // Loop through journal items and add to DB cart
+                            for (const item of journal.items) {
+                                await axios.post('/admin/cart', { id: item.product_id });
+                            }
+                            setCartUpdated(!cartUpdated);
+                            toast.success('Session restored!', { id: toastId });
+                        } catch (e) {
+                            toast.error('Restoration partially failed', { id: toastId });
+                        }
+                    } 
+                });
+            }
+        } catch (e) {
+            console.error("Journal check failed", e);
+        }
+    };
+
 
     // Fetch Cart
     const getCarts = async () => {
@@ -532,7 +571,8 @@ export default function Pos() {
             
             // Refresh Products (stock update)
             getProducts(debouncedSearch, currentPage);
-            toast.success("Order Created Successfully!");
+            toast.success(`Order #${orderId} Created Successfully!`);
+
         });
     };
 

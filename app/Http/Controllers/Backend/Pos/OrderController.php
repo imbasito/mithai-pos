@@ -7,11 +7,20 @@ use App\Models\Order;
 use App\Models\OrderTransaction;
 use App\Models\PosCart;
 use App\Models\Product;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
+
 use Yajra\DataTables\DataTables;
 
 class OrderController extends Controller
 {
+    protected $orderService;
+
+    public function __construct(OrderService $orderService)
+    {
+        $this->orderService = $orderService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -19,7 +28,9 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $orders = Order::with('customer')->select('orders.*'); // Use Query Builder for true server-side pagination
+            $orders = Order::with('customer')->orderBy('id', 'desc'); 
+
+
             return DataTables::of($orders)
                 ->addIndexColumn()
                 ->addColumn('saleId', fn($data) => "#" . $data->id)
@@ -72,95 +83,30 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'customer_id' => [
-                'required',
-                'exists:customers,id',
-                'integer', // Ensure customer_id is an integer
-            ],
-            'order_discount' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-            'paid' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
+        $data = $request->validate([
+            'customer_id' => 'required|exists:customers,id|integer',
+            'order_discount' => 'nullable|numeric|min:0',
+            'paid' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|string|in:cash,card,online',
             'transaction_id' => 'nullable|string|max:255',
-        ], [
-            'customer_id.required' => 'Please select a customer.',
-            'customer_id.exists' => 'The selected customer does not exist.',
-            'order_discount.numeric' => 'The order discount must be a number.',
-            'paid.numeric' => 'The amount paid must be a number.',
         ]);
-        $carts = PosCart::with('product')->where('user_id', auth()->id())->get();
-        if ($carts->isEmpty()) {
-            return response()->json(['message' => 'Cart is empty'], 400);
-        }
 
-        // --- SECURITY & INTEGRITY: PRE-TRANSACTION STOCK CHECK ---
-        // Verify all items are in stock BEFORE starting order creation
-        // This prevents partial failures where some items are deducted but others fail.
-        foreach ($carts as $cart) {
-            $productName = $cart->product->name ?? 'Unknown Product';
-            if (!$cart->product || !$cart->product->status) {
-                return response()->json(['message' => "Product '{$productName}' is no longer available"], 400);
+        try {
+            $order = $this->orderService->createOrder($data, auth()->id());
+            
+            // Clear journal on successful sale
+            $path = storage_path('app/current_sale.journal');
+            if (\Illuminate\Support\Facades\File::exists($path)) {
+                \Illuminate\Support\Facades\File::delete($path);
             }
-            if ($cart->product->quantity < $cart->quantity) {
-                return response()->json(['message' => "Insufficient stock for '{$productName}'. Available: {$cart->product->quantity}"], 400);
-            }
-        }
+            
+            return response()->json(['message' => 'Order completed successfully', 'order' => $order], 200);
+        } catch (\Exception $e) {
 
-        $order = Order::create([
-            'customer_id' => $request->customer_id,
-            'user_id' => $request->user()->id,
-        ]);
-        $totalAmountOrder = 0;
-        $orderDiscount = $request->order_discount;
-        foreach ($carts as $cart) {
-            $mainTotal = $cart->product->price * $cart->quantity;
-            $totalAfterDiscount = $cart->product->discounted_price * $cart->quantity;
-            $discount = $mainTotal - $totalAfterDiscount;
-            $totalAmountOrder += $totalAfterDiscount;
-            $order->products()->create([
-                'quantity' => $cart->quantity,
-                'price' => $cart->product->price,
-                'purchase_price' => $cart->product->purchase_price,
-                'sub_total' => $mainTotal,
-                'discount' => $discount,
-                'total' => $totalAfterDiscount,
-                'product_id' => $cart->product->id,
-            ]);
-            $cart->product->quantity = $cart->product->quantity - $cart->quantity;
-            $cart->product->save();
+            return response()->json(['message' => $e->getMessage()], 400);
         }
-        $total = $totalAmountOrder - $orderDiscount;
-        $due = $total - $request->paid;
-        $order->sub_total = $totalAmountOrder;
-        $order->discount = $orderDiscount;
-        $order->paid = $request->paid;
-        $order->total = round((float)$total, 2);
-        $order->due = round((float)$due, 2);
-        $order->status = round((float)$due, 2) <= 0;
-        $order->save();
-        //create order transaction
-        if ($request->paid > 0) {
-            $orderTransaction = $order->transactions()->create([
-                'amount' => $request->paid,
-                'customer_id' => $order->customer_id,
-                'user_id' => auth()->id(),
-                'paid_by' => $request->payment_method ?? 'cash',
-                'transaction_id' => $request->transaction_id,
-            ]);
-        }
-
-        $carts = PosCart::where('user_id', auth()->id())->delete();
-        \Illuminate\Support\Facades\Cache::flush();
-        return response()->json(['message' => 'Order completed successfully', 'order' => $order], 200);
     }
+
 
     /**
      * Display the specified resource.
@@ -200,33 +146,22 @@ class OrderController extends Controller
     }
     public function collection(Request $request, $id)
     {
-
         $order = Order::findOrFail($id);
         if ($request->isMethod('post')) {
             $data = $request->validate([
                 'amount' => 'required|numeric|min:1',
             ]);
 
-
-            $due = $order->due - $data['amount'];
-            $paid = $order->paid + $data['amount'];
-            $order->due = round((float)$due, 2);
-            $order->paid = round((float)$paid, 2);
-            $order->status = round((float)$due, 2) <= 0;
-            $order->save();
-            $collection_amount = $data['amount'];
-            //create order transaction
-
-            $orderTransaction = $order->transactions()->create([
-                'amount' => $data['amount'],
-                'customer_id' => $order->customer_id,
-                'user_id' => auth()->id(),
-                'paid_by' => 'cash',
-            ]);
-            return to_route('backend.admin.collectionInvoice', $orderTransaction->id);
+            try {
+                $transaction = $this->orderService->collectDue($order, $data, auth()->id());
+                return to_route('backend.admin.collectionInvoice', $transaction->id);
+            } catch (\Exception $e) {
+                return back()->withErrors(['amount' => $e->getMessage()]);
+            }
         }
         return view('backend.orders.collection.create', compact('order'));
     }
+
 
     //collection invoice by order_transaction id
     public function collectionInvoice($id)
