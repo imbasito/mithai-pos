@@ -262,7 +262,7 @@ class OrderController extends Controller
             'data' => [
                 'id' => $order->id,
                 'date' => $order->created_at->format('d/m/Y h:i A'),
-                'staff' => $order->user->name ?? 'Staff',
+                'staff' => auth()->user()->name ?? 'Staff',
                 'customer' => $order->customer ? [
                     'name' => $order->customer->name,
                     'phone' => $order->customer->phone ?? ''
