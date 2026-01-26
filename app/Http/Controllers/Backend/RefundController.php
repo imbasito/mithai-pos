@@ -23,7 +23,7 @@ class RefundController extends Controller
         abort_if(!auth()->user()->can('refund_view'), 403);
 
         if ($request->ajax()) {
-            $returns = ProductReturn::with(['order', 'processedBy'])->latest()->get();
+            $returns = ProductReturn::with(['order', 'processedBy'])->latest('id'); // Simplified: Eloquent handles table resolution
             return DataTables::of($returns)
                 ->addIndexColumn()
                 ->addColumn('return_number', fn($data) => '<span class="text-maroon font-weight-bold">' . $data->return_number . '</span>')

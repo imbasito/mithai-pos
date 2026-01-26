@@ -420,7 +420,34 @@
                 <div class="container-fluid">
 
                     <!-- content -->
-                    @yield('content')
+                    <div id="initial-skeleton">
+                        <div class="skeleton-shimmer mb-4" style="height: 40px; width: 30%; border-radius: 8px;"></div>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="skeleton-shimmer mb-3" style="height: 300px; width: 100%; border-radius: 12px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="skeleton-shimmer mb-3" style="height: 150px; width: 100%; border-radius: 12px;"></div>
+                                <div class="skeleton-shimmer" style="height: 150px; width: 100%; border-radius: 12px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="actual-page-content" style="opacity: 0; transition: opacity 0.2s ease-in-out;">
+                        @yield('content')
+                    </div>
+                    
+                    <script>
+                        // Hide skeleton and show content when DOM is ready
+                        document.addEventListener("DOMContentLoaded", function() {
+                            const skel = document.getElementById('initial-skeleton');
+                            const cont = document.getElementById('actual-page-content');
+                            if(skel && cont) {
+                                skel.style.display = 'none';
+                                cont.style.opacity = '1';
+                            }
+                        });
+                    </script>
                     <!-- /.content -->
 
                 </div>

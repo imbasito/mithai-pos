@@ -1,3 +1,4 @@
+require('v8-compile-cache');
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('updater', {

@@ -75,13 +75,22 @@ export default function BarcodeGenerator() {
             }
         }
 
-        const url = `/admin/barcode/print?label=${encodeURIComponent(label)}&barcode=${barcodeValue}&mfg=${mfgDate}&exp=${expDate}&size=${labelSize}&price=${showPrice ? price : 0}`;
         const tagPrinter = window.posSettings?.tagPrinter;
+        const barcodeData = {
+            type: 'barcode',
+            label: label,
+            barcodeValue: barcodeValue,
+            mfgDate: mfgDate,
+            expDate: expDate,
+            labelSize: labelSize,
+            price: price || 0,
+            showPrice: showPrice
+        };
 
-        // 1. Try Electron Silent Print
+        // 1. PROFESSIONAL SILENT PRINT (PNG Capture Engine)
         if (window.electron && window.electron.printSilent) {
             const toastId = Swal.fire({
-                title: 'Printing Label...',
+                title: 'Generating Label...',
                 didOpen: () => Swal.showLoading(),
                 toast: true,
                 position: 'top-end',
@@ -89,43 +98,40 @@ export default function BarcodeGenerator() {
             });
 
             try {
-                // Determine full URL if relative
-                let targetUrl = url;
-                if (!url.startsWith('http')) {
-                    const { protocol, host } = window.location;
-                    targetUrl = `${protocol}//${host}${url}`;
-                }
-
-                const res = await window.electron.printSilent(targetUrl, tagPrinter);
+                // Pass raw data to main.cjs for professional generation
+                const res = await window.electron.printSilent(null, tagPrinter, null, barcodeData);
                 
                 if (res.success) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Printed Successfully',
-                        text: tagPrinter ? `Sent to: ${tagPrinter}` : 'Sent to Default Printer',
+                        title: 'Label Sent to Printer',
+                        text: tagPrinter ? `Printer: ${tagPrinter}` : 'Default Printer',
                         toast: true,
                         position: 'top-end',
                         timer: 2000,
                         showConfirmButton: false
                     });
                 } else {
-                    throw new Error(res.error || "Unknown Print Error");
+                    throw new Error(res.error || "Capture Error");
                 }
             } catch (err) {
-                console.error("Silent Print Failed", err);
+                console.error("Professional Print Failed", err);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Print Error',
-                    text: 'Falling back to browser print...',
+                    title: 'Print Engine Error',
+                    text: 'Falling back to legacy print...',
                     toast: true,
                     position: 'top-end',
                     timer: 2000
                 });
-                // Fallback below
+                
+                // Legacy Fallback
+                const url = `/admin/barcode/print?label=${encodeURIComponent(label)}&barcode=${barcodeValue}&mfg=${mfgDate}&exp=${expDate}&size=${labelSize}&price=${showPrice ? price : 0}`;
                 fallbackPrint(url);
             }
         } else {
             // 2. Standard Browser Fallback
+            const url = `/admin/barcode/print?label=${encodeURIComponent(label)}&barcode=${barcodeValue}&mfg=${mfgDate}&exp=${expDate}&size=${labelSize}&price=${showPrice ? price : 0}`;
             fallbackPrint(url);
         }
 
@@ -156,16 +162,45 @@ export default function BarcodeGenerator() {
     };
 
     // Reprint from history
-    const handleReprint = (item) => {
-        const url = `/admin/barcode/print?label=${encodeURIComponent(item.label || '')}&barcode=${item.barcode}`;
-        let iframe = document.getElementById('print-frame');
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'print-frame';
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
+    const handleReprint = async (item) => {
+        const tagPrinter = window.posSettings?.tagPrinter;
+        const barcodeData = {
+            type: 'barcode',
+            label: item.label,
+            barcodeValue: item.barcode,
+            labelSize: 'small', // History reprints default to small or we could save size in DB
+            showPrice: false
+        };
+
+        if (window.electron && window.electron.printSilent) {
+             const toastId = Swal.fire({
+                title: 'Reprinting...',
+                didOpen: () => Swal.showLoading(),
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false
+            });
+
+            try {
+                const res = await window.electron.printSilent(null, tagPrinter, null, barcodeData);
+                if (res.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reprint Sent',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            } catch (e) {
+                const url = `/admin/barcode/print?label=${encodeURIComponent(item.label || '')}&barcode=${item.barcode}`;
+                fallbackPrint(url);
+            }
+        } else {
+            const url = `/admin/barcode/print?label=${encodeURIComponent(item.label || '')}&barcode=${item.barcode}`;
+            fallbackPrint(url);
         }
-        iframe.src = url;
     };
 
     // Delete from history
@@ -383,7 +418,10 @@ export default function BarcodeGenerator() {
                         <h5 className="card-title text-dark font-weight-bold mb-0">
                             <i className="fas fa-history mr-2 text-secondary"></i> Print History
                         </h5>
-                        <button className="btn btn-light btn-sm shadow-sm" onClick={() => loadHistory(currentPage)} title="Refresh List">
+                        <button className="btn btn-sm shadow-sm ml-auto" 
+                                onClick={() => loadHistory(currentPage)} 
+                                title="Refresh List"
+                                style={{ background: '#e9ecef', border: '1px solid #ced4da', borderRadius: '8px' }}>
                             <i className="fas fa-sync-alt text-maroon"></i>
                         </button>
                     </div>

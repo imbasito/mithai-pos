@@ -153,9 +153,7 @@ function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1280, height: 800, title: "SPOS", icon: path.join(basePath, 'pos-icon.ico'), 
         autoHideMenuBar: true, show: false,
-        // ENABLE MICA EFFECT (Windows 11 Only - Graceful Fallback)
-        backgroundMaterial: 'mica', 
-        transparent: false, // Mica requires transparent: false on some versions, but let's stick to standard opaque + mica
+        backgroundColor: '#f4f6f9', // Solid Grey dashboard background
         webPreferences: { contextIsolation: true, preload: path.join(__dirname, 'preload.cjs'), zoomFactor: 0.85 }
     });
     mainWindow.loadURL(`http://127.0.0.1:${laravelPort}`);
@@ -201,8 +199,14 @@ function setupAutoUpdater() {
         
         try {
             if (jsonData) {
-                const htmlString = generateReceiptHtml(jsonData);
-                const tempPath = path.join(app.getPath('temp'), `receipt_${Date.now()}.html`);
+                let htmlString = "";
+                if (jsonData.type === 'barcode') {
+                    htmlString = generateBarcodeHtml(jsonData);
+                } else {
+                    htmlString = generateReceiptHtml(jsonData);
+                }
+                
+                const tempPath = path.join(app.getPath('temp'), `${jsonData.type || 'receipt'}_${Date.now()}.html`);
                 const fs = require('fs');
                 fs.writeFileSync(tempPath, htmlString);
                 
@@ -226,7 +230,7 @@ function setupAutoUpdater() {
                         const receiptsDir = path.join(app.getPath('documents'), 'Receipts');
                         if (!require('fs').existsSync(receiptsDir)) require('fs').mkdirSync(receiptsDir);
                         
-                        const filename = `Receipt_${jsonData.id || Date.now()}.png`;
+                        const filename = `${jsonData.type === 'barcode' ? 'Barcode' : 'Receipt'}_${jsonData.id || Date.now()}.png`;
                         const imagePath = path.join(receiptsDir, filename);
                         
                         require('fs').writeFileSync(imagePath, image.toPNG());
@@ -552,6 +556,73 @@ function generateReceiptHtml(data) {
         }
 
         window.onload = signalReady;
+    </script>
+</body>
+</html>`;
+}
+
+// ============================================
+// GENERATE BARCODE HTML (Professional Label)
+// ============================================
+function generateBarcodeHtml(data) {
+    const { label, barcodeValue, mfgDate, expDate, labelSize, price, showPrice } = data;
+    const fs = require('fs');
+    let barcodeLib = '';
+    try { barcodeLib = fs.readFileSync('d:\\Projects\\POS System\\public\\plugins\\JsBarcode.all.min.js', 'utf8'); } catch(e) {}
+
+    // Scaled for high-density 50mm label
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { 
+            width: 50mm; height: 30mm; 
+            display: flex; justify-content: center; align-items: center;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #fff;
+        }
+        .container { 
+            width: 100%; text-align: center; padding: 2px;
+            border: 1px solid transparent; /* Professional layout */
+        }
+        .product-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; overflow: hidden; white-space: nowrap; }
+        .price { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
+        .barcode-area { margin: 2px 0; }
+        .dates { display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; margin-top: 2px; border-top: 1px dashed #000; padding-top: 2px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="product-name">${label || 'PRODUCT'}</div>
+        ${showPrice ? `<div class="price">Rs. ${parseFloat(price).toFixed(2)}</div>` : ''}
+        <div class="barcode-area"><svg id="barcode"></svg></div>
+        ${labelSize === 'large' && (mfgDate || expDate) ? `
+        <div class="dates">
+            <span>MFG: ${mfgDate}</span>
+            <span>EXP: ${expDate}</span>
+        </div>` : ''}
+    </div>
+
+    <script>${barcodeLib}</script>
+    <script>
+        const { ipcRenderer } = require('electron');
+        window.onload = () => {
+            JsBarcode("#barcode", "${barcodeValue}", {
+                format: "CODE128",
+                width: 1.8,
+                height: 50,
+                displayValue: true,
+                fontSize: 14
+            });
+            
+            setTimeout(() => {
+                const bodyHeight = document.body.scrollHeight;
+                ipcRenderer.send('ready-to-print', { height: bodyHeight });
+            }, 600);
+        }
     </script>
 </body>
 </html>`;

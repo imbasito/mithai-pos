@@ -8,9 +8,10 @@ use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $logs = ActivityLog::latest()->with('user')->paginate(50);
-        return view('backend.activity.index', compact('logs'));
+        $perPage = $request->get('per_page', 20);
+        $logs = ActivityLog::latest()->with('user')->paginate($perPage)->withQueryString();
+        return view('backend.activity.index', compact('logs', 'perPage'));
     }
 }

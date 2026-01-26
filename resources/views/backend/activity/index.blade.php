@@ -6,10 +6,19 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title">System Activity Logs</h3>
-                <div class="card-tools">
-                    <span class="badge badge-info">Total: {{ $logs->total() }}</span>
+                <div class="card-tools d-flex align-items-center ml-auto">
+                    <span class="badge badge-maroon p-2 mr-3" style="font-size: 0.9rem; border-radius: 8px;">Total: {{ $logs->total() }}</span>
+                    <form action="{{ route('backend.admin.activity.logs.index') }}" method="GET" class="d-flex align-items-center">
+                        <small class="mr-2 text-muted font-weight-bold">Show:</small>
+                        <select name="per_page" class="form-control form-control-sm border-maroon" onchange="this.form.submit()" style="width: 70px; border-radius: 6px;">
+                            <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
+                            <option value="20" {{ $perPage == 20 ? 'selected' : '' }}>20</option>
+                            <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
+                            <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
+                        </select>
+                    </form>
                 </div>
             </div>
             
